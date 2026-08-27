@@ -1,0 +1,6 @@
+[
+  { "id": "stu-1001", "name": "Alex Johnson", "email": "alex.johnson@westmont.edu" },
+  { "id": "stu-1002", "name": "Maria Garcia", "email": "maria.garcia@westmont.edu" },
+  { "id": "stu-1003", "name": "Chen Wei", "email": "chen.wei@westmont.edu" },
+  { "id": "stu-1004", "name": "Sofia Rossi", "email": "sofia.rossi@westmont.edu" }
+]

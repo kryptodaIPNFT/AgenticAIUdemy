@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Your Dashboard — Westmont Video Portal</title>
+  <link rel="icon" href="/logo/westmontlogo.webp" type="image/webp" />
+  <link rel="stylesheet" href="/css/styles.css" />
+  <script>
+    /* NOTE: theme is applied by theme.js after first paint on this page,
+       so the brand-blue (#0068b3) base fades smoothly into white/black. */
+    (function () {
+      try {
+        var t = localStorage.getItem('vp-theme');
+        if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body class="page-dash">
+  <header class="topbar topbar-solid">
+    <a class="brand" href="/">
+      <img src="/logo/westmontlogo.webp" alt="Westmont logo" />
+      <span>Westmont&nbsp;Video&nbsp;Portal</span>
+    </a>
+    <div class="topbar-right">
+      <span class="me-chip" id="meName" title="Signed in"></span>
+      <button id="themeToggle" class="icon-btn" type="button" aria-label="Toggle light / dark mode">
+        <span class="icon-moon" aria-hidden="true">&#9789;</span>
+        <span class="icon-sun" aria-hidden="true">&#9728;</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="dash-wrap">
+    <section class="dash-head reveal">
+      <h1>Your lessons</h1>
+      <div class="progress-block">
+        <div class="progress-label">
+          <span>Course progress</span>
+          <b id="progressText">0 / 0 completed</b>
+        </div>
+        <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progressTrack">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="videoGrid" class="video-grid" aria-live="polite">
+      <div class="grid-note" id="gridNote">Loading your lessons&hellip;</div>
+    </section>
+
+    <section id="emptyState" class="empty-state" hidden>
+      <div class="empty-icon" aria-hidden="true">&#127909;</div>
+      <h2>No lessons yet</h2>
+      <p>Drop video files into the <code>videos/</code> folder on the server — they will appear here instantly.</p>
+    </section>
+  </main>
+
+  <script src="/js/theme.js"></script>
+  <script src="/js/dash.js"></script>
+</body>
+</html>

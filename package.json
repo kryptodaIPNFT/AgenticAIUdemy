@@ -1,0 +1,22 @@
+{
+  "name": "video-portal",
+  "version": "1.0.0",
+  "description": "Self-hosted Udemy-style video streaming portal — Express + vanilla HTML/CSS/JS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "video",
+    "streaming",
+    "courses",
+    "self-hosted"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "express-session": "^1.19.0",
+    "qrcode": "^1.5.4"
+  }
+}

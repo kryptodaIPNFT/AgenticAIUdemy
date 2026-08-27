@@ -1,0 +1,7 @@
+You are running on a local RTX 3090 setup using llama.cpp. Memory and output context sizes are strictly limited.
+
+Mandatory Workflow Rules:
+1. Never read full files if you only need to look at one function or CSS block.
+2. Never output or rewrite whole code files. You must ONLY output precise, targeted code snippets or SEARCH/REPLACE diff blocks.
+3. Handle only one component (e.g., just CSS, or just the QR router logic) at a time. Once a file change is made, STOP and ask the user for confirmation.
+4. If an output is getting long, truncate it and ask the user to say "continue" to fetch the next block.

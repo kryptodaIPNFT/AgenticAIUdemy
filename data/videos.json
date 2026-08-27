@@ -1,0 +1,85 @@
+[
+  {
+    "id": "video-1",
+    "title": "Introduction to Web Development",
+    "description": "A friendly overview of how the web works, plus a tour of HTML, CSS and JavaScript.",
+    "duration": 720,
+    "level": "Beginner",
+    "url": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+    "status": "Published",
+    "createdAt": "2026-08-01T09:00:00.000Z",
+    "resources": [
+      { "type": "link", "label": "MDN Web Docs — Getting started", "url": "https://developer.mozilla.org/en-US/docs/Learn_web_development" },
+      { "type": "note", "label": "Setup checklist", "url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_tools/Setting_up_your_environment" }
+    ]
+  },
+  {
+    "id": "video-2",
+    "title": "HTML5 Fundamentals",
+    "description": "Semantic markup, forms, media elements and accessibility basics in modern HTML5.",
+    "duration": 1500,
+    "level": "Beginner",
+    "url": "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+    "status": "Published",
+    "createdAt": "2026-08-02T09:00:00.000Z",
+    "resources": [
+      { "type": "link", "label": "HTML5 spec overview", "url": "https://html.spec.whatwg.org/" },
+      { "type": "note", "label": "MDN HTML reference", "url": "https://developer.mozilla.org/en-US/docs/Web/HTML" }
+    ]
+  },
+  {
+    "id": "video-3",
+    "title": "CSS Grid and Flexbox Deep Dive",
+    "description": "Build responsive layouts with confidence using Grid tracks, Flexbox and modern units.",
+    "duration": 1800,
+    "level": "Intermediate",
+    "url": "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "status": "Published",
+    "createdAt": "2026-08-03T09:00:00.000Z",
+    "resources": [
+      { "type": "link", "label": "CSS Grid Guide (css-tricks)", "url": "https://css-tricks.com/snippets/css/complete-guide-grid/" },
+      { "type": "note", "label": "Flexbox Defense", "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_flexible_box_layout" }
+    ]
+  },
+  {
+    "id": "video-4",
+    "title": "JavaScript Essentials",
+    "description": "Variables, functions, objects, arrays, and the event loop explained with live demos.",
+    "duration": 2100,
+    "level": "Beginner",
+    "url": "https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+    "status": "Published",
+    "createdAt": "2026-08-04T09:00:00.000Z",
+    "resources": [
+      { "type": "link", "label": "JavaScript.info — The Handbook", "url": "https://javascript.info/" },
+      { "type": "note", "label": "MDN JavaScript guide", "url": "https://developer.mozilla.org/en-US/docs/Learn/JavaScript" }
+    ]
+  },
+  {
+    "id": "video-5",
+    "title": "Building REST APIs with Express",
+    "description": "Routing, middleware, JSON responses and error handling in a production-style API.",
+    "duration": 2400,
+    "level": "Intermediate",
+    "url": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+    "status": "Published",
+    "createdAt": "2026-08-05T09:00:00.000Z",
+    "resources": [
+      { "type": "link", "label": "Express guide", "url": "https://expressjs.com/en/starter/installing.html" },
+      { "type": "note", "label": "MDN HTTP overview", "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP" }
+    ]
+  },
+  {
+    "id": "video-6",
+    "title": "Project: Full-Stack Video Portal",
+    "description": "Capstone project — wire the UI to the API, persist progress and deploy the portal.",
+    "duration": 3000,
+    "level": "Advanced",
+    "url": "https://storage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+    "status": "Draft",
+    "createdAt": "2026-08-06T09:00:00.000Z",
+    "resources": [
+      { "type": "note", "label": "Deployment checklist", "url": "https://developer.mozilla.org/en-US/docs/Learn/Tools_and_testing/Client-side_javascript_APIs" }
+    ]
+  }
+]

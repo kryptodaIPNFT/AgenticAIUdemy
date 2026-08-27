@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Westmont Video Portal — Sign in</title>
+  <link rel="icon" href="/logo/westmontlogo.webp" type="image/webp" />
+  <link rel="stylesheet" href="/css/styles.css" />
+  <script>
+    /* Apply the saved theme before first paint (Phase 1 behavior). */
+    (function () {
+      try {
+        var t = localStorage.getItem('vp-theme');
+        if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body class="page-landing">
+  <div class="bg" aria-hidden="true">
+    <i class="orb o1"></i><i class="orb o2"></i><i class="orb o3"></i><i class="orb o4"></i>
+  </div>
+
+  <header class="topbar">
+    <a class="brand" href="/">
+      <img src="/logo/westmontlogo.webp" alt="Westmont logo" />
+      <span>Westmont&nbsp;Video&nbsp;Portal</span>
+    </a>
+    <button id="themeToggle" class="icon-btn" type="button" aria-label="Toggle light / dark mode" title="Toggle light / dark mode">
+      <span class="icon-moon" aria-hidden="true">&#9789;</span>
+      <span class="icon-sun" aria-hidden="true">&#9728;</span>
+    </button>
+  </header>
+
+  <main class="landing-wrap">
+    <section class="intro reveal">
+      <h1>Agentic AI is here. <span class="accent">Take part of it.</span></h1>
+      <p>
+        In the prototyping stage, speed and cost reduction are everything. Traditional development
+        requires extensive developer hours just to build basic, functional concepts. Agentic AI shifts
+        this paradigm entirely. By employing autonomous AI agents that can write code, manage
+        dependencies, and fix errors in small, rapid iterations, startups and enterprises can build
+        fully working prototypes in hours instead of weeks.
+      </p>
+      <p>
+        For startups, this slashes software development costs dramatically, allowing founders to
+        validate their business concepts and market fit with minimal financial risk. For enterprises,
+        it removes departmental bottlenecks, enabling internal teams to test, iterate, and deploy
+        secure proof-of-concepts at a fraction of the usual corporate budget.
+      </p>
+      <p>
+        Agentic AI doesn't just assist with coding&mdash;it acts as an independent engineering partner
+        that eliminates placeholders, accelerates your time-to-market, and proves your product's value
+        instantly.
+      </p>
+    </section>
+
+    <section class="qr-panel reveal" aria-live="polite">
+      <!-- idle state -->
+      <div id="qrIdle" class="qr-idle">
+        <h2>Sign in to your dashboard</h2>
+        <p class="qr-idle-note">No username. No password. Just a QR code.</p>
+        <ol class="qr-steps">
+          <li><b>1.</b> Press the button below to show a live QR code.</li>
+          <li><b>2.</b> On your phone, scan it with your camera &mdash; or open it from the email link / NFC card.</li>
+          <li><b>3.</b> Pick your student profile and press <b>Verify &amp; sign in</b>. This screen opens your dashboard automatically.</li>
+        </ol>
+        <button id="btnShowQr" class="btn btn-primary" type="button">Show QR code</button>
+        <p id="qrError" class="form-error" hidden></p>
+      </div>
+
+      <!-- live state -->
+      <div id="qrLive" class="qr-live" hidden>
+        <div class="qr-frame">
+          <img id="qrImg" alt="Sign-in QR code" />
+        </div>
+        <div class="qr-code-row">
+          <span>Can't scan? Code:</span>
+          <b id="qrCode" class="code-chip"></b>
+        </div>
+        <p class="qr-timer" id="qrTimer">Waiting for your phone&hellip;</p>
+        <button id="btnRefreshQr" class="btn btn-ghost" type="button">Refresh QR code</button>
+      </div>
+
+      <!-- verified state -->
+      <div id="qrOk" class="qr-ok" hidden>
+        <div class="ok-badge" aria-hidden="true">&#10003;</div>
+        <h2>Signed in as <span id="okName"></span></h2>
+        <p>Opening your dashboard&hellip;</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/theme.js"></script>
+  <script src="/js/qr.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "video1.mp4": {
+    "description": "Welcome to the portal. This is the first lesson in your Agentic AI course. Watch the video, then check the attached resource and the sample code snippet below — you can copy it with one click.",
+    "resourceUrl": "https://developer.mozilla.org/en-US/docs/Web/HTTP",
+    "snippets": [
+      {
+        "title": "Fetch the course video list",
+        "lang": "javascript",
+        "code": "const res = await fetch('/api/videos');\nconst { videos } = await res.json();\nvideos.forEach((v) => console.log(v.name, v.size));"
+      }
+    ]
+  }
+}
