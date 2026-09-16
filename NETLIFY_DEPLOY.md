@@ -50,7 +50,7 @@ Click **Deploy**. Later pushes to `main` redeploy automatically.
 
 | Name | Value |
 |------|--------|
-| `ADMIN_PASSWORD` | strong password, not `admin123` |
+| `ADMIN_PASSWORD` | `2131` |
 | `SESSION_SECRET` | long random string |
 | `PUBLIC_URL` | `https://YOUR-SITE.netlify.app` |
 
@@ -158,7 +158,7 @@ You can rename it under **Project configuration → Domain management**.
 
 | Key | Value |
 |-----|--------|
-| `ADMIN_PASSWORD` | A strong password (**not** `admin123`) |
+| `ADMIN_PASSWORD` | `2131` |
 | `SESSION_SECRET` | Long random string (see command below) |
 | `PUBLIC_URL` | Your live HTTPS URL, e.g. `https://westmont-hub.netlify.app` |
 

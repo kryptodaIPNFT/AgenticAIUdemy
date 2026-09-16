@@ -46,7 +46,7 @@ const ON_NETLIFY = Boolean(
   process.env.SITE_ID
 );
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '2131';
 const PUBLIC_URL = (process.env.PUBLIC_URL || process.env.URL || process.env.DEPLOY_PRIME_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
 const QR_TTL_MS = 120 * 1000; // QR challenge lives for 2 minutes
 
@@ -562,7 +562,7 @@ async function startLocal() {
   });
   await store.bootstrap();
   app.listen(PORT, () => {
-    console.log(`Westmont Video Portal running -> http://localhost:${PORT}  (admin: /admin, password default "admin123")`);
+    console.log(`Westmont Video Portal running -> http://localhost:${PORT}  (admin: /admin, password default "2131")`);
     if (PUBLIC_URL) console.log(`PUBLIC_URL (QR codes) -> ${PUBLIC_URL}`);
     console.log(`Videos folder -> ${VIDEOS_DIR}`);
     console.log(`Data folder   -> ${DATA_DIR}`);
