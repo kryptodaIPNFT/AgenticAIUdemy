@@ -1,0 +1,24 @@
+# Render Blueprint — optional one-click deploy from the Render dashboard.
+# Dashboard → New → Blueprint → connect this repo.
+services:
+  - type: web
+    name: westmont-video-portal
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        sync: false
+      # Persistent disk (Starter plan+): mount at /var/data, then uncomment:
+      # - key: VIDEOS_DIR
+      #   value: /var/data/videos
+      # - key: DATA_DIR
+      #   value: /var/data/data
+      # - key: THUMBNAILS_DIR
+      #   value: /var/data/thumbnails

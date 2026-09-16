@@ -13,7 +13,16 @@
   let pollTimer = null;
   let tickTimer = null;
 
+  function apiHeaders(extra) {
+    const h = Object.assign({}, extra || {});
+    if (/ngrok/i.test(location.hostname)) h['ngrok-skip-browser-warning'] = '1';
+    return h;
+  }
+
   async function api(url, opts) {
+    opts = opts || {};
+    opts.credentials = 'include';
+    opts.headers = apiHeaders(opts.headers);
     const r = await fetch(url, opts);
     let j = {};
     try { j = await r.json(); } catch (e) {}
@@ -66,31 +75,45 @@
     const el = $('#qrTimer');
     const paint = () => {
       if (left <= 0) el.textContent = 'Code expired — press “Refresh QR code”.';
-      else el.textContent = 'Waiting for your phone\u2026 expires in ' + left + 's';
+      else el.textContent = 'Waiting for unique QR-reader scan\u2026 expires in ' + left + 's';
     };
     paint();
     tickTimer = setInterval(() => { left -= 1; paint(); }, 1000);
   }
 
+  function onVerified(student) {
+    stopTimers();
+    $('#qrIdle').hidden = true;
+    $('#qrLive').hidden = true;
+    $('#okName').textContent = student ? student.name : 'student';
+    $('#qrOk').hidden = false;
+    setTimeout(() => { window.location.href = '/dashboard'; }, 900);
+  }
+
+  async function pollOnce() {
+    if (!current) return;
+    const s = await api('/api/qr/status?token=' + encodeURIComponent(current.token));
+    if (s.status === 'verified') {
+      onVerified(s.student);
+    } else if (s.status === 'expired') {
+      stopTimers();
+      $('#qrTimer').textContent = 'Code expired — press “Refresh QR code”.';
+    }
+  }
+
   function startPolling() {
-    pollTimer = setInterval(async () => {
-      if (!current) return;
-      try {
-        const s = await api('/api/qr/status?token=' + encodeURIComponent(current.token));
-        if (s.status === 'verified') {
-          stopTimers();
-          $('#qrLive').hidden = true;
-          $('#okName').textContent = s.student ? s.student.name : 'student';
-          $('#qrOk').hidden = false;
-          setTimeout(() => { window.location.href = '/dashboard'; }, 900);
-        } else if (s.status === 'expired') {
-          stopTimers();
-          $('#qrTimer').textContent = 'Code expired — press “Refresh QR code”.';
-        }
-      } catch (e) { /* keep polling; transient network blips are fine */ }
-    }, POLL_MS);
+    pollOnce().catch(() => {});
+    pollTimer = setInterval(() => { pollOnce().catch(() => {}); }, POLL_MS);
+  }
+
+  async function checkAlreadySignedIn() {
+    try {
+      const me = await api('/api/me');
+      if (me.student) window.location.replace('/dashboard');
+    } catch (e) { /* not signed in yet */ }
   }
 
   $('#btnShowQr').addEventListener('click', showQr);
   $('#btnRefreshQr').addEventListener('click', showQr);
+  checkAlreadySignedIn();
 })();

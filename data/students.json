@@ -1,6 +1,20 @@
 [
-  { "id": "stu-1001", "name": "Alex Johnson", "email": "alex.johnson@westmont.edu" },
-  { "id": "stu-1002", "name": "Maria Garcia", "email": "maria.garcia@westmont.edu" },
-  { "id": "stu-1003", "name": "Chen Wei", "email": "chen.wei@westmont.edu" },
-  { "id": "stu-1004", "name": "Sofia Rossi", "email": "sofia.rossi@westmont.edu" }
+  {
+    "id": "stu-1001",
+    "name": "Alex Johnson",
+    "email": "alex.johnson@westmont.edu",
+    "inviteKey": "ag4So7F7uConSmf5XLg5KgKYutHLmF0P"
+  },
+  {
+    "id": "stu-1002",
+    "name": "Maria Garcia",
+    "email": "maria.garcia@westmont.edu",
+    "inviteKey": "2jin9Z6zTwe2B7LrwMbyy6K-Isx9pJou"
+  },
+  {
+    "id": "stu-1003",
+    "name": "Chen Wei",
+    "email": "chen.wei@westmont.edu",
+    "inviteKey": "UbtQe5cW1uoOCeJNmoMvsFK0Sb50Hp9j"
+  }
 ]

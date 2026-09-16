@@ -2,8 +2,9 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const express = require('express');
-const session = require('express-session');
+const cookieSession = require('cookie-session');
 const QRCode = require('qrcode');
+const store = require('./lib/store');
 
 /* ============================================================
    Westmont Video Portal — self-hosted streaming platform
@@ -18,54 +19,220 @@ const QRCode = require('qrcode');
    ============================================================ */
 
 const app = express();
+
+app.use((req, res, next) => {
+  const prefixes = ['/.netlify/functions/server.js', '/.netlify/functions/server'];
+  for (let i = 0; i < prefixes.length; i++) {
+    const p = prefixes[i];
+    if (req.url.indexOf(p) === 0) {
+      req.url = req.url.slice(p.length) || '/';
+      break;
+    }
+  }
+  next();
+});
 const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, 'public');
-const VIDEOS_DIR = path.join(ROOT, 'videos');
-const DATA_DIR = path.join(ROOT, 'data');
+const LOGO_DIR = path.join(ROOT, 'logo');
+const VIDEOS_DIR = process.env.VIDEOS_DIR || path.join(ROOT, 'videos');
+const THUMBNAILS_DIR = process.env.THUMBNAILS_DIR || path.join(ROOT, 'thumbnails');
+const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
+const ON_NETLIFY = Boolean(process.env.NETLIFY || process.env.NETLIFY_DEV);
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const PUBLIC_URL = (process.env.PUBLIC_URL || process.env.URL || process.env.DEPLOY_PRIME_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
 const QR_TTL_MS = 120 * 1000; // QR challenge lives for 2 minutes
 
+function cookieSecure() {
+  if (process.env.SESSION_SECURE === '1') return true;
+  if (process.env.SESSION_SECURE === '0') return false;
+  return ON_NETLIFY;
+}
+
+/* reverse proxy (Netlify / ngrok / Render) so HTTPS cookies and hosts are correct */
+app.set('trust proxy', 1);
+
+function publicOrigin(req) {
+  if (PUBLIC_URL) return PUBLIC_URL;
+  const proto = req.get('x-forwarded-proto') || req.protocol;
+  return `${proto}://${req.get('host')}`;
+}
+
 app.use(express.json({ limit: '1mb' }));
-app.use(session({
+app.use(cookieSession({
   name: 'wvp.sid',
-  secret: process.env.SESSION_SECRET || 'westmont-video-portal-dev-secret',
-  resave: false,
-  saveUninitialized: true,
-  cookie: { httpOnly: true, sameSite: 'lax', maxAge: 1000 * 60 * 60 * 12 }
+  keys: [process.env.SESSION_SECRET || 'westmont-video-portal-dev-secret'],
+  maxAge: 1000 * 60 * 60 * 12,
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: cookieSecure()
 }));
 
-/* ---------------- data helpers ---------------- */
-function readJson(file, fallback) {
-  try { return JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf8')); }
-  catch { return fallback; }
+app.use((req, res, next) => {
+  store.bootstrap().then(() => next()).catch(next);
+});
+
+app.use((req, res, next) => {
+  if (req.session == null) req.session = {};
+  next();
+});
+
+const QR_PAYLOAD_PREFIX = 'WHUB-SIGNIN:';
+
+function newStudentId() {
+  return 'stu-' + crypto.randomBytes(4).toString('hex');
 }
-function writeJson(file, value) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(path.join(DATA_DIR, file), JSON.stringify(value, null, 2));
+
+function publicStudent(s) {
+  if (!s) return null;
+  return { id: s.id, name: s.name, email: s.email || '' };
 }
-const students = () => readJson('students.json', []);
-const meta = () => readJson('meta.json', {});
+
+function inviteUrlFor(req, key) {
+  return `${publicOrigin(req)}/qr-reader?k=${encodeURIComponent(key)}`;
+}
+
+function adminStudentView(req, s) {
+  return {
+    id: s.id,
+    name: s.name,
+    email: s.email || '',
+    inviteKey: s.inviteKey,
+    inviteUrl: inviteUrlFor(req, s.inviteKey)
+  };
+}
+
+async function findByInviteKey(key) {
+  const k = String(key || '').trim();
+  if (!k) return null;
+  const list = await store.getStudents();
+  return list.find((s) => s.inviteKey === k) || null;
+}
+
+function requireAdmin(req, res) {
+  if (!req.session || !req.session.admin) {
+    res.status(401).json({ ok: false, error: 'Admin sign-in required.' });
+    return false;
+  }
+  return true;
+}
 
 const VIDEO_EXT = new Set(['.mp4', '.webm', '.ogg', '.ogv', '.mov', '.m4v', '.mkv', '.avi']);
-function listVideos() {
-  if (!fs.existsSync(VIDEOS_DIR)) return [];
-  return fs.readdirSync(VIDEOS_DIR)
-    .filter((f) => VIDEO_EXT.has(path.extname(f).toLowerCase()))
-    .sort((a, b) => a.localeCompare(b))
-    .map((name) => {
-      const st = fs.statSync(path.join(VIDEOS_DIR, name));
-      return { name, url: `/videos/${encodeURIComponent(name)}`, size: st.size, mtime: st.mtimeMs };
+const THUMB_EXT = ['.webp', '.jpg', '.jpeg', '.png', '.svg'];
+const INTRO_FILE = 'intro.mp4';
+const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
+
+function placeholderThumbSvg(title) {
+  const label = String(title || 'Lesson').slice(0, 48);
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0068b3"/>
+      <stop offset="55%" stop-color="#004a80"/>
+      <stop offset="100%" stop-color="#00345c"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#e78943"/>
+      <stop offset="100%" stop-color="#e1ad62"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <circle cx="520" cy="70" r="90" fill="rgba(231,137,67,0.18)"/>
+  <circle cx="90" cy="300" r="70" fill="rgba(255,255,255,0.08)"/>
+  <rect x="36" y="36" width="568" height="288" rx="18" fill="none" stroke="url(#gold)" stroke-width="3" opacity="0.85"/>
+  <circle cx="320" cy="155" r="42" fill="rgba(255,255,255,0.14)" stroke="#e1ad62" stroke-width="2"/>
+  <polygon points="305,130 305,180 345,155" fill="#ffffff"/>
+  <text x="320" y="248" text-anchor="middle" fill="#ffffff" font-family="system-ui,sans-serif" font-size="28" font-weight="800">${label.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</text>
+  <text x="320" y="278" text-anchor="middle" fill="#e1ad62" font-family="system-ui,sans-serif" font-size="14" font-weight="700" letter-spacing="3">WESTMONT HUB</text>
+</svg>`;
+}
+
+function findThumbnailFile(basename) {
+  for (const ext of THUMB_EXT) {
+    const file = basename + ext;
+    if (fs.existsSync(path.join(THUMBNAILS_DIR, file))) return file;
+  }
+  return null;
+}
+
+function ensureThumbnail(videoName, title) {
+  if (ON_NETLIFY) return;
+  fs.mkdirSync(THUMBNAILS_DIR, { recursive: true });
+  const base = path.basename(videoName, path.extname(videoName));
+  if (findThumbnailFile(base)) return;
+  const svgPath = path.join(THUMBNAILS_DIR, base + '.svg');
+  fs.writeFileSync(svgPath, placeholderThumbSvg(title || humanTitle(videoName)), 'utf8');
+}
+
+function thumbnailUrl(videoName) {
+  const base = path.basename(videoName, path.extname(videoName));
+  const file = findThumbnailFile(base);
+  if (file) return `/thumbnails/${encodeURIComponent(file)}`;
+  return `/thumbnails/${encodeURIComponent(base + '.svg')}`;
+}
+
+function humanTitle(filename) {
+  const base = path.basename(filename, path.extname(filename));
+  if (/^intro$/i.test(base)) return 'Course Introduction';
+  const part = base.match(/^(\d+)\s*\((\d+)\)$/);
+  if (part) return 'Lesson ' + part[1] + ' — Part ' + part[2];
+  const num = base.match(/^(\d+)/);
+  if (num && base.length === num[1].length) return 'Lesson ' + num[1];
+  return base.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+async function listVideos(opts) {
+  opts = opts || {};
+  const includeIntro = Boolean(opts.includeIntro);
+  const m = await store.getMeta();
+  let files = [];
+
+  if (ON_NETLIFY) {
+    const manifest = await store.getVideoManifest();
+    files = (Array.isArray(manifest) ? manifest : [])
+      .filter((item) => item && item.name && VIDEO_EXT.has(path.extname(item.name).toLowerCase()))
+      .map((item) => ({
+        name: item.name,
+        size: Number(item.size) || 0,
+        mtimeMs: Number(item.mtimeMs) || 0
+      }));
+  } else if (fs.existsSync(VIDEOS_DIR)) {
+    files = fs.readdirSync(VIDEOS_DIR)
+      .filter((f) => VIDEO_EXT.has(path.extname(f).toLowerCase()))
+      .map((name) => {
+        const st = fs.statSync(path.join(VIDEOS_DIR, name));
+        return { name, size: st.size, mtimeMs: st.mtimeMs };
+      });
+  }
+
+  return files
+    .filter((f) => includeIntro || f.name.toLowerCase() !== INTRO_FILE.toLowerCase())
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+    .map((file, index) => {
+      const name = file.name;
+      const entry = m[name] || {};
+      const title = entry.title || humanTitle(name);
+      ensureThumbnail(name, title);
+      return {
+        id: name,
+        name,
+        title,
+        description: entry.description || '',
+        url: `/videos/${encodeURIComponent(name)}`,
+        thumbnail: thumbnailUrl(name),
+        size: file.size,
+        mtime: file.mtimeMs,
+        duration: Number(entry.duration) || 0,
+        level: entry.level || LEVELS[index % LEVELS.length],
+        status: entry.status || 'Published',
+        resourceUrl: entry.resourceUrl || '',
+        snippets: Array.isArray(entry.snippets) ? entry.snippets : []
+      };
     });
 }
 
-/* ---------------- QR challenge store (in-memory) ---------------- */
-const challenges = new Map();
-function sweepChallenges() {
-  const now = Date.now();
-  for (const [t, c] of challenges) if (c.expiresAt <= now) challenges.delete(t);
-}
 function randomCode(len = 6) {
   const chars = '23456789BCDFGHJKMNPQRTVWXY'; // no ambiguous 0/O/1/I/L
   let s = '';
@@ -74,98 +241,264 @@ function randomCode(len = 6) {
 }
 
 /* ============================================================
-   Phase 2 — QR-code authenticator (landing page)
-   Desktop: GET /api/qr/challenge -> token + 6-char code + QR png
-   Phone:   opens /qr-reader?code=XXXXXX (camera scan, email, NFC)
-   Phone:   POST /api/qr/verify {code, studentId}
+   QR authenticator — invite-only in-app scanner
+   Desktop QR encodes WHUB-SIGNIN:XXXXXX (not a web URL), so a
+   phone Camera app cannot open /qr-reader. Login works only if
+   the person opens their unique admin-issued /qr-reader?k= link.
+   Desktop: GET /api/qr/challenge -> token + code + QR png
+   Phone:   POST /api/qr/verify {code, inviteKey}
    Desktop: GET /api/qr/status?token=  -> pending | verified | expired
    ============================================================ */
 app.get('/api/qr/challenge', async (req, res) => {
   try {
-    sweepChallenges();
     const token = crypto.randomBytes(16).toString('hex');
     const code = randomCode(6);
-    const origin = `${req.protocol}://${req.get('host')}`;
-    const url = `${origin}/qr-reader?code=${code}`;
+    const payload = QR_PAYLOAD_PREFIX + code;
     let qr = '';
     try {
-      qr = await QRCode.toDataURL(url, {
+      qr = await QRCode.toDataURL(payload, {
         width: 520, margin: 2, errorCorrectionLevel: 'M',
         color: { dark: '#002147', light: '#ffffff' }
       });
     } catch (e) { qr = ''; }
-    const entry = { token, code, url, expiresAt: Date.now() + QR_TTL_MS, studentId: null };
-    challenges.set(token, entry);
-    res.json({ ok: true, token, code, url, qr, expiresIn: Math.round(QR_TTL_MS / 1000) });
+    const entry = { token, code, payload, expiresAt: Date.now() + QR_TTL_MS, studentId: null };
+    await store.putChallenge(entry);
+    res.json({ ok: true, token, code, qr, expiresIn: Math.round(QR_TTL_MS / 1000) });
   } catch (e) {
+    console.error(e);
     res.status(500).json({ ok: false, error: 'Could not create a sign-in code.' });
   }
 });
 
-app.get('/api/qr/status', (req, res) => {
-  const c = challenges.get(String(req.query.token || ''));
-  if (!c || c.expiresAt <= Date.now()) return res.json({ status: 'expired' });
-  if (!c.studentId) {
-    return res.json({ status: 'pending', expiresIn: Math.max(0, Math.round((c.expiresAt - Date.now()) / 1000)) });
+app.get('/api/qr/status', async (req, res) => {
+  try {
+    const c = await store.getChallengeByToken(req.query.token);
+    if (!c) return res.json({ status: 'expired' });
+    if (!c.studentId) {
+      return res.json({ status: 'pending', expiresIn: Math.max(0, Math.round((c.expiresAt - Date.now()) / 1000)) });
+    }
+    const list = await store.getStudents();
+    const stu = list.find((s) => s.id === c.studentId);
+    if (!stu) return res.json({ status: 'expired' });
+    if (!req.session.studentId) req.session.studentId = stu.id;
+    res.json({ status: 'verified', student: publicStudent(stu) });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ status: 'error', error: 'Could not save your sign-in session.' });
   }
-  const stu = students().find((s) => s.id === c.studentId);
-  if (!stu) return res.json({ status: 'expired' });
-  if (!req.session.studentId) req.session.studentId = stu.id; // bind desktop session
-  res.json({ status: 'verified', student: stu });
 });
 
-app.post('/api/qr/verify', (req, res) => {
-  const { code, studentId } = req.body || {};
-  sweepChallenges();
-  const entry = [...challenges.values()].find((c) => c.code === String(code || '').trim().toUpperCase());
-  if (!entry || entry.expiresAt <= Date.now()) {
-    return res.status(410).json({ ok: false, error: 'This sign-in code has expired. Please show a fresh QR code on the desktop screen.' });
+app.post('/api/qr/verify', async (req, res) => {
+  try {
+    const { code, inviteKey } = req.body || {};
+    const stu = await findByInviteKey(inviteKey);
+    if (!stu) {
+      return res.status(403).json({
+        ok: false,
+        error: 'This QR reader link is not valid. Open the unique link you were sent, then scan the desktop code there.'
+      });
+    }
+    const entry = await store.getChallengeByCode(code);
+    if (!entry) {
+      return res.status(410).json({ ok: false, error: 'This sign-in code has expired. Please show a fresh QR code on the desktop screen.' });
+    }
+    entry.studentId = stu.id;
+    await store.putChallenge(entry);
+    res.json({ ok: true, student: publicStudent(stu) });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, error: 'Could not verify sign-in.' });
   }
-  const stu = students().find((s) => s.id === studentId);
-  if (!stu) return res.status(400).json({ ok: false, error: 'Unknown student profile. Choose your profile and try again.' });
-  entry.studentId = stu.id;
-  res.json({ ok: true, student: stu });
+});
+
+app.get('/api/invite', async (req, res) => {
+  try {
+    const stu = await findByInviteKey(req.query.k);
+    if (!stu) {
+      return res.status(403).json({
+        ok: false,
+        error: 'This sign-in link is invalid or has been revoked. Ask your course admin for a new unique QR-reader link.'
+      });
+    }
+    res.json({ ok: true, student: publicStudent(stu) });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, error: 'Could not check this invite link.' });
+  }
 });
 
 /* ---------------- students / me ---------------- */
-app.get('/api/students', (req, res) => res.json({ students: students() }));
+app.get('/api/me', async (req, res) => {
+  try {
+    const list = await store.getStudents();
+    const student = list.find((s) => s.id === req.session.studentId) || null;
+    res.json({ student: publicStudent(student), admin: Boolean(req.session.admin) });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ student: null, admin: false, error: 'Could not load session.' });
+  }
+});
 
-app.get('/api/me', (req, res) => {
-  const student = students().find((s) => s.id === req.session.studentId) || null;
-  res.json({ student, admin: Boolean(req.session.admin) });
+app.get('/api/admin/students', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const list = await store.getStudents();
+    res.json({ ok: true, students: list.map((s) => adminStudentView(req, s)) });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, error: 'Could not load students.' });
+  }
+});
+
+app.post('/api/admin/students', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const name = String((req.body && req.body.name) || '').trim().slice(0, 120);
+    const email = String((req.body && req.body.email) || '').trim().slice(0, 200);
+    if (!name) return res.status(400).json({ ok: false, error: 'Name is required.' });
+    const list = await store.getStudents();
+    const student = { id: newStudentId(), name, email, inviteKey: store.newInviteKey() };
+    list.push(student);
+    await store.saveStudents(list);
+    res.json({ ok: true, student: adminStudentView(req, student) });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, error: 'Could not create student.' });
+  }
+});
+
+app.post('/api/admin/students/regenerate', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const id = String((req.body && req.body.id) || '');
+    const list = await store.getStudents();
+    const idx = list.findIndex((s) => s.id === id);
+    if (idx < 0) return res.status(404).json({ ok: false, error: 'Student not found.' });
+    list[idx].inviteKey = store.newInviteKey();
+    await store.saveStudents(list);
+    res.json({ ok: true, student: adminStudentView(req, list[idx]) });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, error: 'Could not refresh invite link.' });
+  }
+});
+
+app.post('/api/admin/students/delete', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const id = String((req.body && req.body.id) || '');
+    const list = await store.getStudents();
+    const next = list.filter((s) => s.id !== id);
+    if (next.length === list.length) return res.status(404).json({ ok: false, error: 'Student not found.' });
+    await store.saveStudents(next);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, error: 'Could not remove student.' });
+  }
+});
+
+/* ---------------- lesson completion progress ---------------- */
+const progressAll = () => store.getProgress();
+
+function progressForStudent(map, studentId) {
+  if (!studentId) return {};
+  const entry = map[studentId];
+  return entry && typeof entry === 'object' ? entry : {};
+}
+
+function completedVideoIds(map, studentId) {
+  const studentMap = progressForStudent(map, studentId);
+  return Object.keys(studentMap).filter((id) => studentMap[id] && studentMap[id].completed);
+}
+
+app.get('/api/progress', async (req, res) => {
+  if (!req.session.studentId) {
+    return res.status(401).json({ ok: false, error: 'Sign in required.' });
+  }
+  try {
+    const all = await progressAll();
+    const map = progressForStudent(all, req.session.studentId);
+    const videos = await listVideos();
+    const completed = completedVideoIds(all, req.session.studentId);
+    res.json({
+      ok: true,
+      progress: map,
+      completed,
+      completedCount: completed.length,
+      total: videos.length,
+      allComplete: videos.length > 0 && completed.length >= videos.length
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, error: 'Could not load progress.' });
+  }
+});
+
+app.post('/api/progress/complete', async (req, res) => {
+  if (!req.session.studentId) {
+    return res.status(401).json({ ok: false, error: 'Sign in required.' });
+  }
+  try {
+    const videoId = req.body && req.body.videoId;
+    if (typeof videoId !== 'string' || !videoId) {
+      return res.status(400).json({ ok: false, error: 'videoId is required.' });
+    }
+    const videos = await listVideos();
+    if (!videos.some((v) => v.id === videoId)) {
+      return res.status(404).json({ ok: false, error: 'Lesson not found.' });
+    }
+    const all = await progressAll();
+    const sid = req.session.studentId;
+    if (!all[sid]) all[sid] = {};
+    all[sid][videoId] = { completed: true, completedAt: new Date().toISOString() };
+    await store.saveProgress(all);
+    const completed = completedVideoIds(all, sid);
+    const total = videos.length;
+    const allComplete = total > 0 && completed.length >= total;
+    res.json({ ok: true, videoId, completed, completedCount: completed.length, total, allComplete });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, error: 'Could not save progress.' });
+  }
 });
 
 /* ============================================================
    Phase 5 — video library (reads /videos on every request)
    ============================================================ */
-app.get('/api/videos', (req, res) => {
-  const videos = listVideos();
+app.get('/api/videos', async (req, res) => {
+  const videos = await listVideos();
   res.json({ videos, count: videos.length });
 });
 
 /* ============================================================
    Phase 6 + 7 — per-video meta (description, resource, snippets)
    ============================================================ */
-app.get('/api/meta', (req, res) => res.json({ meta: meta() }));
+app.get('/api/meta', async (req, res) => res.json({ meta: await store.getMeta() }));
 
-app.post('/api/meta', (req, res) => {
-  if (!req.session.admin) return res.status(401).json({ ok: false, error: 'Admin sign-in required.' });
-  const { video, description, resourceUrl, snippets } = req.body || {};
+app.post('/api/meta', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const { video, title, description, resourceUrl, snippets } = req.body || {};
   if (typeof video !== 'string' || !video) return res.status(400).json({ ok: false, error: 'video is required' });
-  const m = meta();
+  const videos = await listVideos();
+  if (!videos.some((v) => v.id === video || v.name === video)) {
+    return res.status(404).json({ ok: false, error: 'Lesson not found: ' + video });
+  }
+  const m = await store.getMeta();
   m[video] = {
+    title: typeof title === 'string' ? title.slice(0, 200) : '',
     description: typeof description === 'string' ? description.slice(0, 4000) : '',
     resourceUrl: typeof resourceUrl === 'string' ? resourceUrl.slice(0, 2000) : '',
     snippets: Array.isArray(snippets)
-      ? snippets.filter((s) => s && typeof s.code === 'string').slice(0, 20).map((s) => ({
+      ? snippets.filter((s) => s && typeof s.code === 'string' && s.code.trim()).slice(0, 20).map((s) => ({
           title: String(s.title || 'Snippet').slice(0, 120),
-          lang: String(s.lang || 'text').slice(0, 40),
+          type: String(s.type || s.lang || 'code').slice(0, 40),
           code: String(s.code).slice(0, 50000)
         }))
       : []
   };
-  writeJson('meta.json', m);
-  res.json({ ok: true });
+  await store.saveMeta(m);
+  res.json({ ok: true, video, meta: m[video] });
 });
 
 /* ---------------- admin auth ---------------- */
@@ -182,8 +515,19 @@ app.post('/api/admin/logout', (req, res) => {
   res.json({ ok: true });
 });
 
+app.post('/api/logout', (req, res) => {
+  req.session = null;
+  res.clearCookie('wvp.sid');
+  res.json({ ok: true });
+});
+
 /* ---------------- health ---------------- */
-app.get('/healthz', (req, res) => res.json({ status: 'ok', service: 'westmont-video-portal', phase: 7 }));
+app.get('/healthz', (req, res) => res.json({
+  status: 'ok',
+  service: 'westmont-video-portal',
+  phase: 7,
+  host: ON_NETLIFY ? 'netlify' : 'node'
+}));
 
 /* ---------------- pages (before static so routes win) ---------------- */
 app.get('/qr-reader', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'qr-reader.html')));
@@ -198,12 +542,32 @@ app.get('/dashboard', (req, res) => {
 });
 
 /* ---------------- static ---------------- */
+app.use('/logo', express.static(LOGO_DIR, { fallthrough: true, index: false, maxAge: '7d' }));
+app.use('/thumbnails', express.static(THUMBNAILS_DIR, { fallthrough: true, index: false, maxAge: '1h' }));
 app.use('/videos', express.static(VIDEOS_DIR, { fallthrough: true, index: false, maxAge: '1h' }));
 app.use(express.static(PUBLIC_DIR));
 
 /* 404 for unknown API routes */
 app.use('/api', (req, res) => res.status(404).json({ ok: false, error: 'Not found' }));
 
-app.listen(PORT, () => {
-  console.log(`Westmont Video Portal running -> http://localhost:${PORT}  (admin: /admin, password default "admin123")`);
-});
+async function startLocal() {
+  [VIDEOS_DIR, THUMBNAILS_DIR, DATA_DIR].forEach((dir) => {
+    try { fs.mkdirSync(dir, { recursive: true }); } catch (e) { /* ignore */ }
+  });
+  await store.bootstrap();
+  app.listen(PORT, () => {
+    console.log(`Westmont Video Portal running -> http://localhost:${PORT}  (admin: /admin, password default "admin123")`);
+    if (PUBLIC_URL) console.log(`PUBLIC_URL (QR codes) -> ${PUBLIC_URL}`);
+    console.log(`Videos folder -> ${VIDEOS_DIR}`);
+    console.log(`Data folder   -> ${DATA_DIR}`);
+  });
+}
+
+if (require.main === module) {
+  startLocal().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
+
+module.exports = { app, bootstrap: store.bootstrap };

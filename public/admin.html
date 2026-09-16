@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin — Westmont Video Portal</title>
-  <link rel="icon" href="/logo/westmontlogo.webp" type="image/webp" />
+  <link rel="icon" href="/logo/westmont-hub.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/css/styles.css" />
   <script>
     (function () {
@@ -23,7 +23,7 @@
 
   <header class="topbar">
     <a class="brand" href="/">
-      <img src="/logo/westmontlogo.webp" alt="Westmont logo" />
+      <img src="/logo/westmont-hub.svg" alt="Westmont Hub logo" width="36" height="36" />
       <span>Admin</span>
     </a>
     <div class="topbar-right">
@@ -39,7 +39,7 @@
     <!-- login gate -->
     <section class="admin-login reveal" id="adminGate" aria-live="polite">
       <h1>Admin area</h1>
-      <p class="reader-sub">Secure section — enter the admin password to manage lesson content.</p>
+        <p class="reader-sub">Secure section — issue unique QR-reader links for each student, and edit lesson descriptions, resources, and snippets.</p>
       <form id="adminLoginForm" class="admin-form">
         <label class="field-label" for="adminPass">Admin password</label>
         <input id="adminPass" class="field" type="password" autocomplete="current-password" required />
@@ -50,11 +50,93 @@
 
     <!-- editor -->
     <section id="adminEditor" hidden>
-      <div class="admin-head">
-        <h1>Lesson content</h1>
-        <p class="reader-sub">Descriptions, resource links and code snippets appear on the student watch page. Changes save per lesson.</p>
+      <div class="admin-tabs" role="tablist" aria-label="Admin sections">
+        <button type="button" class="admin-tab is-active" data-tab="invites" role="tab" aria-selected="true">Student access links</button>
+        <button type="button" class="admin-tab" data-tab="lessons" role="tab" aria-selected="false">Lesson content</button>
       </div>
-      <div id="adminList" class="admin-list" aria-live="polite"></div>
+
+      <div id="tabInvites" class="admin-tab-panel">
+        <div class="admin-head">
+          <h1>Unique QR-reader links</h1>
+        </div>
+        <p class="reader-sub">
+          Create a private link for each person and send it to them (email, WhatsApp, etc.).
+          Only that link opens the in-app QR scanner. The phone’s default Camera app cannot sign anyone in.
+          When using ngrok, open this Admin page on the <strong>ngrok HTTPS URL</strong> so copied links work on phones.
+        </p>
+
+        <form id="inviteCreateForm" class="glass-panel admin-invite-form" autocomplete="off">
+          <div class="admin-form-grid">
+            <label>Name
+              <input id="inviteName" class="field" type="text" required placeholder="Student name" />
+            </label>
+            <label>Email (optional)
+              <input id="inviteEmail" class="field" type="email" placeholder="name@westmont.edu" />
+            </label>
+          </div>
+          <div class="admin-form-actions">
+            <button class="admin-btn admin-btn-primary" type="submit">Create unique link</button>
+            <span id="inviteStatus" class="admin-status" aria-live="polite"></span>
+          </div>
+        </form>
+
+        <div class="admin-invite-table-wrap">
+          <table class="admin-table" id="inviteTable">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Unique QR-reader URL</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inviteTableBody"></tbody>
+          </table>
+          <p id="inviteEmpty" class="admin-empty" hidden>No students yet — create one above.</p>
+        </div>
+      </div>
+
+      <div id="tabLessons" class="admin-tab-panel" hidden>
+        <div class="admin-head">
+          <h1>Lesson content editor</h1>
+          <p class="reader-sub">Pick <strong>one lesson</strong> below — description, resources and snippets are saved separately for each video file.</p>
+        </div>
+
+        <div class="admin-picker glass-panel">
+          <label class="field-label" for="lessonPicker">Select lesson</label>
+          <select id="lessonPicker" class="field" aria-describedby="lessonFileHint"></select>
+          <p id="lessonFileHint" class="admin-lesson-file"></p>
+        </div>
+
+        <form id="lessonEditForm" class="admin-lesson glass-panel" autocomplete="off" hidden>
+          <header class="admin-lesson-head">
+            <h2 id="lessonEditHeading">Edit lesson</h2>
+            <p class="admin-save-note">Saving updates <b id="lessonSaveTarget"></b> only — other lessons are not affected.</p>
+          </header>
+
+          <label class="field-label" for="lessonTitle">Display title (optional)</label>
+          <input id="lessonTitle" class="field" type="text" placeholder="Leave blank to use auto title from filename" autocomplete="off" />
+
+          <label class="field-label" for="lessonDescription">Description</label>
+          <textarea id="lessonDescription" class="field" rows="5" placeholder="What this lesson covers…" autocomplete="off"></textarea>
+
+          <label class="field-label" for="lessonResource">Resource URL</label>
+          <input id="lessonResource" class="field" type="url" placeholder="https://slides, docs, GitHub…" autocomplete="off" />
+
+          <div class="admin-snippet-section">
+            <h3 class="admin-snippet-heading">Student reference snippets</h3>
+            <p class="admin-snippet-help">Code, terminal commands, or AI prompts shown under the video on the watch page.</p>
+            <div id="lessonSnippets" class="admin-snippets"></div>
+            <button id="btnAddSnippet" class="admin-btn" type="button">+ Add snippet</button>
+          </div>
+
+          <div class="admin-form-actions">
+            <button class="admin-btn admin-btn-primary" type="submit">Save this lesson only</button>
+            <span id="lessonSaveStatus" class="admin-status" aria-live="polite"></span>
+          </div>
+        </form>
+
+        <p id="adminEmpty" class="admin-empty" hidden>No lesson videos in the <code>videos/</code> folder yet.</p>
+      </div>
     </section>
   </main>
 

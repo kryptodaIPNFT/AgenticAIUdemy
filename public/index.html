@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Westmont Video Portal — Sign in</title>
-  <link rel="icon" href="/logo/westmontlogo.webp" type="image/webp" />
+  <link rel="icon" href="/logo/westmont-hub.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/css/styles.css" />
   <script>
     /* Apply the saved theme before first paint (Phase 1 behavior). */
@@ -18,53 +18,56 @@
   </script>
 </head>
 <body class="page-landing">
-  <div class="bg" aria-hidden="true">
-    <i class="orb o1"></i><i class="orb o2"></i><i class="orb o3"></i><i class="orb o4"></i>
+  <div class="bg-layer bg-layer--light" aria-hidden="true">
+    <i class="bg-orb bg-orb--1"></i><i class="bg-orb bg-orb--2"></i><i class="bg-orb bg-orb--3"></i><i class="bg-orb bg-orb--4"></i>
+  </div>
+  <div class="bg-layer bg-layer--dark" aria-hidden="true">
+    <i class="bg-orb bg-orb--1"></i><i class="bg-orb bg-orb--2"></i><i class="bg-orb bg-orb--3"></i><i class="bg-orb bg-orb--4"></i>
   </div>
 
   <header class="topbar">
     <a class="brand" href="/">
-      <img src="/logo/westmontlogo.webp" alt="Westmont logo" />
-      <span>Westmont&nbsp;Video&nbsp;Portal</span>
+      <img src="/logo/westmont-hub.svg" alt="Westmont Hub logo" width="36" height="36" />
+      <span>Westmont&nbsp;Hub</span>
     </a>
+    <div class="topbar-right">
     <button id="themeToggle" class="icon-btn" type="button" aria-label="Toggle light / dark mode" title="Toggle light / dark mode">
       <span class="icon-moon" aria-hidden="true">&#9789;</span>
       <span class="icon-sun" aria-hidden="true">&#9728;</span>
     </button>
+  </div>
   </header>
 
   <main class="landing-wrap">
-    <section class="intro reveal">
-      <h1>Agentic AI is here. <span class="accent">Take part of it.</span></h1>
-      <p>
-        In the prototyping stage, speed and cost reduction are everything. Traditional development
-        requires extensive developer hours just to build basic, functional concepts. Agentic AI shifts
-        this paradigm entirely. By employing autonomous AI agents that can write code, manage
-        dependencies, and fix errors in small, rapid iterations, startups and enterprises can build
-        fully working prototypes in hours instead of weeks.
-      </p>
-      <p>
-        For startups, this slashes software development costs dramatically, allowing founders to
-        validate their business concepts and market fit with minimal financial risk. For enterprises,
-        it removes departmental bottlenecks, enabling internal teams to test, iterate, and deploy
-        secure proof-of-concepts at a fraction of the usual corporate budget.
-      </p>
-      <p>
-        Agentic AI doesn't just assist with coding&mdash;it acts as an independent engineering partner
-        that eliminates placeholders, accelerates your time-to-market, and proves your product's value
-        instantly.
-      </p>
-    </section>
+    <div class="landing-main reveal">
+      <section class="intro">
+        <h1>Agentic AI is here. <span class="accent">Take part of it.</span></h1>
+        <p>
+          In the prototyping stage, speed and cost reduction are everything. Traditional development
+          requires extensive developer hours just to build basic, functional concepts. Agentic AI shifts
+          this paradigm entirely&mdash;building fully working prototypes in hours instead of weeks.
+        </p>
+      </section>
 
-    <section class="qr-panel reveal" aria-live="polite">
+      <section class="intro-video-wrap" aria-label="Course introduction video">
+        <h2 class="intro-video-label">Course introduction</h2>
+        <video class="intro-video" controls playsinline preload="metadata" poster="">
+          <source src="/videos/intro.mp4" type="video/mp4" />
+          Your browser does not support HTML5 video.
+        </video>
+      </section>
+    </div>
+
+    <aside class="landing-auth reveal">
+      <section class="qr-panel" aria-live="polite">
       <!-- idle state -->
       <div id="qrIdle" class="qr-idle">
         <h2>Sign in to your dashboard</h2>
-        <p class="qr-idle-note">No username. No password. Just a QR code.</p>
+        <p class="qr-idle-note">Invite-only. The phone Camera app cannot sign anyone in.</p>
         <ol class="qr-steps">
-          <li><b>1.</b> Press the button below to show a live QR code.</li>
-          <li><b>2.</b> On your phone, scan it with your camera &mdash; or open it from the email link / NFC card.</li>
-          <li><b>3.</b> Pick your student profile and press <b>Verify &amp; sign in</b>. This screen opens your dashboard automatically.</li>
+          <li><b>1.</b> <span>Open the <strong>unique QR-reader link</strong> you were sent (in your phone browser).</span></li>
+          <li><b>2.</b> <span>Press the button below to show a live QR code on this screen.</span></li>
+          <li><b>3.</b> <span>Scan it with the <strong>in-app camera</strong> on that unique page, then verify. This screen opens your dashboard automatically.</span></li>
         </ol>
         <button id="btnShowQr" class="btn btn-primary" type="button">Show QR code</button>
         <p id="qrError" class="form-error" hidden></p>
@@ -79,7 +82,7 @@
           <span>Can't scan? Code:</span>
           <b id="qrCode" class="code-chip"></b>
         </div>
-        <p class="qr-timer" id="qrTimer">Waiting for your phone&hellip;</p>
+        <p class="qr-timer" id="qrTimer">Waiting for your unique QR-reader page&hellip;</p>
         <button id="btnRefreshQr" class="btn btn-ghost" type="button">Refresh QR code</button>
       </div>
 
@@ -89,7 +92,8 @@
         <h2>Signed in as <span id="okName"></span></h2>
         <p>Opening your dashboard&hellip;</p>
       </div>
-    </section>
+      </section>
+    </aside>
   </main>
 
   <script src="/js/theme.js"></script>

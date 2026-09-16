@@ -1,0 +1,39 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["express", "cookie-session", "qrcode", "@netlify/blobs", "serverless-http"]
+  included_files = ["data/*.json", "lib/**"]
+
+[functions.server]
+  timeout = 26
+
+# API + health check go to the Express function. Pages, CSS, JS, and videos stay on the CDN.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/server/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/healthz"
+  to = "/.netlify/functions/server/healthz"
+  status = 200
+  force = true
+
+[[headers]]
+  for = "/videos/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+    Accept-Ranges = "bytes"
+
+[[headers]]
+  for = "/thumbnails/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"

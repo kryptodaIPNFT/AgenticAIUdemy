@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0068b3"/>
+      <stop offset="55%" stop-color="#004a80"/>
+      <stop offset="100%" stop-color="#00345c"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#e78943"/>
+      <stop offset="100%" stop-color="#e1ad62"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <circle cx="520" cy="70" r="90" fill="rgba(231,137,67,0.18)"/>
+  <circle cx="90" cy="300" r="70" fill="rgba(255,255,255,0.08)"/>
+  <rect x="36" y="36" width="568" height="288" rx="18" fill="none" stroke="url(#gold)" stroke-width="3" opacity="0.85"/>
+  <circle cx="320" cy="155" r="42" fill="rgba(255,255,255,0.14)" stroke="#e1ad62" stroke-width="2"/>
+  <polygon points="305,130 305,180 345,155" fill="#ffffff"/>
+  <text x="320" y="248" text-anchor="middle" fill="#ffffff" font-family="system-ui,sans-serif" font-size="28" font-weight="800">Lesson 1 — Part 4</text>
+  <text x="320" y="278" text-anchor="middle" fill="#e1ad62" font-family="system-ui,sans-serif" font-size="14" font-weight="700" letter-spacing="3">WESTMONT HUB</text>
+</svg>

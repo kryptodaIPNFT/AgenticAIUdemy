@@ -9,5 +9,21 @@
         "code": "const res = await fetch('/api/videos');\nconst { videos } = await res.json();\nvideos.forEach((v) => console.log(v.name, v.size));"
       }
     ]
+  },
+  "1 (1).mp4": {
+    "description": "the following video explain the GPU and cpu atrhitecrue in your laptop or pc or event mac.  lets start here..........",
+    "resourceUrl": "https://example.com",
+    "snippets": [
+      {
+        "title": "Try our first prompt",
+        "type": "prompt",
+        "code": "We are refining the UI/UX and features of our self-hosted streaming portal. Please analyze the repository and implement the following specific updates cleanly across the codebase:\n\nTask 1: Logo & Layout Verification\n- Verify the header implementation of the Westmont Hub logo element. Ensure it is aligned properly with the global theme toggle switch at the top of the interface.\n\nTask 2: Lesson Dashboard Code Snippet Container\n- Update the student video dashboard layout to include a dedicated \"Code Snippet & Resource\" container directly underneath each lesson video player.\n- This section must beautifully render code blocks, system commands, or prompt text lines that I configure as an admin.\n- Include a sleek \"Copy to Clipboard\" utility button directly next to or inside this snippet container for seamless student use.\n\nTask 3: Modern Golden Glassmorphism Button Styles\n- Completely redesign all action buttons across the entire application to feature a premium, modern \"glassmorphism\" look (subtle blur, frosted overlay, translucent faded styling).\n- Color Transition Requirements:\n  * Dark Mode: Buttons must feature a dark, rich golden glass gradient shifting gracefully using the #e78943 palette tones over a translucent frosted background.\n  * Light Mode: When toggling to White background theme, the buttons must remain distinctly golden, but dynamically mix/blend their frosted transparency against the clean white backing container.\n- Use CSS properties like `background: rgba(...)`, `backdrop-filter: blur(...)`, and custom borders to achieve this premium glass aesthetic.\n\nScan our CSS files, layout templates, and dashboard view structures to apply these design and component enhancements now.\n"
+      },
+      {
+        "title": "Snippet",
+        "type": "code",
+        "code": ""
+      }
+    ]
   }
 }
