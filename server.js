@@ -38,7 +38,13 @@ const LOGO_DIR = path.join(ROOT, 'logo');
 const VIDEOS_DIR = process.env.VIDEOS_DIR || path.join(ROOT, 'videos');
 const THUMBNAILS_DIR = process.env.THUMBNAILS_DIR || path.join(ROOT, 'thumbnails');
 const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
-const ON_NETLIFY = Boolean(process.env.NETLIFY || process.env.NETLIFY_DEV);
+const ON_NETLIFY = Boolean(
+  process.env.NETLIFY ||
+  process.env.NETLIFY_DEV ||
+  process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.LAMBDA_TASK_ROOT ||
+  process.env.SITE_ID
+);
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const PUBLIC_URL = (process.env.PUBLIC_URL || process.env.URL || process.env.DEPLOY_PRIME_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
@@ -189,7 +195,7 @@ async function listVideos(opts) {
   const m = await store.getMeta();
   let files = [];
 
-  if (ON_NETLIFY) {
+  if (ON_NETLIFY || !fs.existsSync(VIDEOS_DIR)) {
     const manifest = await store.getVideoManifest();
     files = (Array.isArray(manifest) ? manifest : [])
       .filter((item) => item && item.name && VIDEO_EXT.has(path.extname(item.name).toLowerCase()))

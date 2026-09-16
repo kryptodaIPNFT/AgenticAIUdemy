@@ -10,6 +10,54 @@ Local `npm start` is unchanged (still a normal Node server on port 3000).
 
 ---
 
+## Next time — short checklist
+
+Repo: **https://github.com/kryptodalPNFT/AgenticAIUdemy**  
+Site: import that repo in Netlify (do not upload the whole folder).
+
+**1. Save code locally**
+
+```powershell
+cd C:\GenAI\AI_WEB_SEMINAR\Demo_projects\Udemy_demo
+git add -A
+git commit -m "Update course"
+```
+
+**2. Push to GitHub**
+
+If `git push -u origin main` opens a blank browser login and fails, use a **classic PAT** with **`repo` ticked**, edited in Notepad:
+
+```powershell
+git -c credential.helper= push "https://x-access-token:PASTE_TOKEN@github.com/kryptodalPNFT/AgenticAIUdemy.git" main
+```
+
+Do not type your GitHub password. Delete the token after a successful push.
+
+**3. Netlify (first time only, or when connecting a new site)**
+
+| Field | Value |
+|--------|--------|
+| Repository | `AgenticAIUdemy` |
+| Branch | `main` |
+| Base directory | *(leave empty)* |
+| Build command | `npm run build` |
+| Publish directory | `dist` |
+| Functions directory | `netlify/functions` |
+
+Click **Deploy**. Later pushes to `main` redeploy automatically.
+
+**4. Environment variables** (then Trigger deploy once)
+
+| Name | Value |
+|------|--------|
+| `ADMIN_PASSWORD` | strong password, not `admin123` |
+| `SESSION_SECRET` | long random string |
+| `PUBLIC_URL` | `https://YOUR-SITE.netlify.app` |
+
+**5. Test:** `/healthz` → landing → `/admin` → copy unique QR-reader link → Show QR on desktop → phone opens that link (not the Camera app).
+
+---
+
 ## What you need
 
 | Item | Notes |
