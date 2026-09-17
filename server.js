@@ -191,6 +191,15 @@ function logoFileUrl(file) {
   return `/logo/${encodeURIComponent(name)}${v}`;
 }
 
+async function resolveLogoName() {
+  if (ON_NETLIFY) {
+    const manifest = await store.getLogoManifest();
+    const named = manifest && typeof manifest.file === 'string' ? path.basename(manifest.file) : '';
+    if (named) return named;
+  }
+  return findCustomLogo();
+}
+
 function placeholderThumbSvg(title) {
   const label = String(title || 'Lesson').slice(0, 48);
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -641,8 +650,8 @@ app.get('/api/intro', async (req, res) => {
   });
 });
 
-app.get('/api/logo', (req, res) => {
-  const file = findCustomLogo();
+app.get('/api/logo', async (req, res) => {
+  const file = await resolveLogoName();
   res.json({
     ok: true,
     file,
@@ -651,8 +660,11 @@ app.get('/api/logo', (req, res) => {
   });
 });
 
-app.get('/api/logo/file', (req, res) => {
-  const file = findCustomLogo();
+app.get('/api/logo/file', async (req, res) => {
+  const file = await resolveLogoName();
+  if (ON_NETLIFY) {
+    return res.redirect(302, '/logo/' + encodeURIComponent(file));
+  }
   const full = path.join(LOGO_DIR, file);
   if (!fs.existsSync(full)) {
     return res.status(404).type('text').send('Logo not found');

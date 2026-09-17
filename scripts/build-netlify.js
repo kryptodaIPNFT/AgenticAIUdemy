@@ -68,6 +68,29 @@ function hasThumb(dir, base) {
   return THUMB_EXT.some((ext) => fs.existsSync(path.join(dir, base + ext)));
 }
 
+function pickLogoFile() {
+  const dir = path.join(ROOT, 'logo');
+  const fallback = 'westmont-hub.svg';
+  const raster = new Set(['.webp', '.png', '.jpg', '.jpeg']);
+  if (!fs.existsSync(dir)) return fallback;
+  const files = fs.readdirSync(dir).filter((f) => raster.has(path.extname(f).toLowerCase()) && !f.startsWith('.'));
+  if (!files.length) return fallback;
+  const lower = files.map((f) => f.toLowerCase());
+  const preferred = ['logo.webp', 'logo.png', 'logo.jpg', 'logo.jpeg'];
+  for (let i = 0; i < preferred.length; i++) {
+    const idx = lower.indexOf(preferred[i]);
+    if (idx !== -1) return files[idx];
+  }
+  files.sort((a, b) => {
+    let ma = 0;
+    let mb = 0;
+    try { ma = fs.statSync(path.join(dir, a)).mtimeMs; } catch (e) { /* ignore */ }
+    try { mb = fs.statSync(path.join(dir, b)).mtimeMs; } catch (e) { /* ignore */ }
+    return mb - ma;
+  });
+  return files[0];
+}
+
 function listThumbLibrary() {
   if (!fs.existsSync(THUMBS)) return [];
   return fs.readdirSync(THUMBS)
@@ -113,11 +136,17 @@ const thumbManifestPath = path.join(DATA, 'thumbnail-manifest.json');
 fs.writeFileSync(thumbManifestPath, JSON.stringify(thumbs, null, 2));
 fs.copyFileSync(thumbManifestPath, path.join(DIST, 'thumbnail-manifest.json'));
 
+const logoFile = pickLogoFile();
+const logoManifestPath = path.join(DATA, 'logo-manifest.json');
+fs.writeFileSync(logoManifestPath, JSON.stringify({ file: logoFile }, null, 2));
+fs.copyFileSync(logoManifestPath, path.join(DIST, 'logo-manifest.json'));
+
 const totalMb = videos.reduce((sum, v) => sum + v.size, 0) / (1024 * 1024);
 console.log('Netlify build complete.');
 console.log('  Publish dir : dist/');
 console.log('  Videos      : ' + videos.length + ' (' + totalMb.toFixed(1) + ' MB)');
 console.log('  Thumbnails  : ' + thumbs.length + ' JPG/PNG/WebP');
+console.log('  Logo        : ' + logoFile);
 if (totalMb > 100) {
   console.warn('  Warning: video payload is large. Prefer Netlify CLI deploy, or keep lesson files under ~10 MB each for Git-based deploys.');
 }
