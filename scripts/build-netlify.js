@@ -15,6 +15,7 @@ const THUMBS = path.join(ROOT, 'thumbnails');
 const DATA = path.join(ROOT, 'data');
 const VIDEO_EXT = new Set(['.mp4', '.webm', '.ogg', '.ogv', '.mov', '.m4v', '.mkv', '.avi']);
 const THUMB_EXT = ['.webp', '.jpg', '.jpeg', '.png', '.svg'];
+const THUMB_LIBRARY_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 
 function emptyDir(dir) {
   fs.rmSync(dir, { recursive: true, force: true });
@@ -67,6 +68,14 @@ function hasThumb(dir, base) {
   return THUMB_EXT.some((ext) => fs.existsSync(path.join(dir, base + ext)));
 }
 
+function listThumbLibrary() {
+  if (!fs.existsSync(THUMBS)) return [];
+  return fs.readdirSync(THUMBS)
+    .filter((f) => THUMB_LIBRARY_EXT.has(path.extname(f).toLowerCase()))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+    .map((name) => ({ name }));
+}
+
 function listVideoFiles() {
   if (!fs.existsSync(VIDEOS)) return [];
   return fs.readdirSync(VIDEOS)
@@ -99,10 +108,16 @@ const manifestPath = path.join(DATA, 'video-manifest.json');
 fs.writeFileSync(manifestPath, JSON.stringify(videos, null, 2));
 fs.copyFileSync(manifestPath, path.join(DIST, 'video-manifest.json'));
 
+const thumbs = listThumbLibrary();
+const thumbManifestPath = path.join(DATA, 'thumbnail-manifest.json');
+fs.writeFileSync(thumbManifestPath, JSON.stringify(thumbs, null, 2));
+fs.copyFileSync(thumbManifestPath, path.join(DIST, 'thumbnail-manifest.json'));
+
 const totalMb = videos.reduce((sum, v) => sum + v.size, 0) / (1024 * 1024);
 console.log('Netlify build complete.');
 console.log('  Publish dir : dist/');
 console.log('  Videos      : ' + videos.length + ' (' + totalMb.toFixed(1) + ' MB)');
+console.log('  Thumbnails  : ' + thumbs.length + ' JPG/PNG/WebP');
 if (totalMb > 100) {
   console.warn('  Warning: video payload is large. Prefer Netlify CLI deploy, or keep lesson files under ~10 MB each for Git-based deploys.');
 }

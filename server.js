@@ -271,7 +271,18 @@ function thumbnailUrl(videoName, entry) {
   return `/thumbnails/${encodeURIComponent(file)}${thumbnailCacheQuery(file)}`;
 }
 
-function listLibraryThumbnails() {
+async function listLibraryThumbnails() {
+  if (ON_NETLIFY) {
+    const manifest = await store.getThumbnailManifest();
+    return (Array.isArray(manifest) ? manifest : [])
+      .map((item) => (typeof item === 'string' ? item : (item && item.name)))
+      .filter((name) => name && THUMB_LIBRARY_EXT.has(path.extname(name).toLowerCase()))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+      .map((name) => ({
+        name,
+        url: `/thumbnails/${encodeURIComponent(name)}`
+      }));
+  }
   if (!fs.existsSync(THUMBNAILS_DIR)) return [];
   return fs.readdirSync(THUMBNAILS_DIR)
     .filter((f) => THUMB_LIBRARY_EXT.has(path.extname(f).toLowerCase()))
@@ -682,9 +693,9 @@ app.post('/api/meta', async (req, res) => {
   res.json({ ok: true, video, meta: m[video] });
 });
 
-app.get('/api/admin/thumbnails', (req, res) => {
+app.get('/api/admin/thumbnails', async (req, res) => {
   if (!requireAdmin(req, res)) return;
-  res.json({ ok: true, thumbnails: listLibraryThumbnails() });
+  res.json({ ok: true, thumbnails: await listLibraryThumbnails() });
 });
 
 app.post('/api/admin/thumbnail', async (req, res) => {
