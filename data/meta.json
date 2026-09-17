@@ -25,5 +25,47 @@
         "code": ""
       }
     ]
+  },
+  "Session - Copy (2).mp4": {
+    "thumbnail": "Session3.png",
+    "title": "",
+    "description": "",
+    "resourceUrl": "",
+    "snippets": []
+  },
+  "Session.mp4": {
+    "thumbnail": "Session1.png",
+    "title": "",
+    "description": "",
+    "resourceUrl": "",
+    "snippets": []
+  },
+  "Session - Copy.mp4": {
+    "thumbnail": "Session2.png",
+    "title": "",
+    "description": "",
+    "resourceUrl": "",
+    "snippets": []
+  },
+  "Session - Copy (3).mp4": {
+    "thumbnail": "Session4.png",
+    "title": "",
+    "description": "",
+    "resourceUrl": "",
+    "snippets": []
+  },
+  "Session - Copy (4).mp4": {
+    "thumbnail": "Session5.png",
+    "title": "",
+    "description": "",
+    "resourceUrl": "",
+    "snippets": []
+  },
+  "intro.mp4": {
+    "thumbnail": "Session4.png",
+    "title": "",
+    "description": "",
+    "resourceUrl": "",
+    "snippets": []
   }
 }

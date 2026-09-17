@@ -18,5 +18,5 @@
   <circle cx="320" cy="155" r="42" fill="rgba(255,255,255,0.14)" stroke="#e1ad62" stroke-width="2"/>
   <polygon points="305,130 305,180 345,155" fill="#ffffff"/>
   <text x="320" y="248" text-anchor="middle" fill="#ffffff" font-family="system-ui,sans-serif" font-size="28" font-weight="800">Lesson 1 — Part 1</text>
-  <text x="320" y="278" text-anchor="middle" fill="#e1ad62" font-family="system-ui,sans-serif" font-size="14" font-weight="700" letter-spacing="3">WESTMONT HUB</text>
+  <text x="320" y="278" text-anchor="middle" fill="#e1ad62" font-family="system-ui,sans-serif" font-size="12" font-weight="700" letter-spacing="1.2">E-LEARNING STREAMING SOLUTION</text>
 </svg>

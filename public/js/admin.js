@@ -23,11 +23,18 @@
     resource: document.getElementById('lessonResource'),
     snippets: document.getElementById('lessonSnippets'),
     addSnippet: document.getElementById('btnAddSnippet'),
-    status: document.getElementById('lessonSaveStatus')
+    status: document.getElementById('lessonSaveStatus'),
+    thumbPreview: document.getElementById('lessonThumbPreview'),
+    thumbName: document.getElementById('lessonThumbName'),
+    thumbGrid: document.getElementById('lessonThumbGrid'),
+    thumbEmpty: document.getElementById('lessonThumbEmpty'),
+    thumbFile: document.getElementById('lessonThumbFile'),
+    thumbStatus: document.getElementById('lessonThumbStatus')
   };
 
   let videos = [];
   let metaMap = {};
+  let thumbLibrary = [];
   let currentId = null;
   let dirty = false;
 
@@ -97,7 +104,11 @@
 
     if (ui.heading) ui.heading.textContent = customTitle || autoTitle;
     if (ui.saveTarget) ui.saveTarget.textContent = video.name;
-    if (ui.fileHint) ui.fileHint.textContent = 'Video file: ' + video.name;
+    if (ui.fileHint) {
+      ui.fileHint.textContent = video.name.toLowerCase() === 'intro.mp4'
+        ? 'Landing page intro video: ' + video.name
+        : 'Video file: ' + video.name;
+    }
     if (ui.title) ui.title.value = customTitle;
     if (ui.description) ui.description.value = entry.description || '';
     if (ui.resource) ui.resource.value = entry.resourceUrl || '';
@@ -106,8 +117,103 @@
       ui.status.textContent = '';
       ui.status.className = 'admin-status';
     }
+    renderThumbSection(video);
+    setThumbStatus('');
     form.hidden = false;
     setDirty(false);
+  }
+
+  function setThumbStatus(msg, ok) {
+    if (!ui.thumbStatus) return;
+    ui.thumbStatus.textContent = msg || '';
+    ui.thumbStatus.className = 'admin-status' + (msg ? (ok ? ' admin-status--ok' : ' admin-status--err') : '');
+  }
+
+  function applyThumbResult(video, body) {
+    if (!video || !body) return;
+    video.thumbnail = body.thumbnailUrl || video.thumbnail;
+    video.thumbnailFile = body.thumbnailFile || body.thumbnail || video.thumbnailFile;
+    if (!metaMap[video.id]) metaMap[video.id] = {};
+    metaMap[video.id].thumbnail = video.thumbnailFile;
+    renderThumbSection(video);
+  }
+
+  function renderThumbSection(video) {
+    if (!video) return;
+    if (ui.thumbPreview) {
+      ui.thumbPreview.src = video.thumbnail || '';
+      ui.thumbPreview.alt = (video.title || 'Lesson') + ' thumbnail';
+    }
+    if (ui.thumbName) {
+      ui.thumbName.textContent = video.thumbnailFile
+        ? 'Current file: ' + video.thumbnailFile
+        : 'Using the auto placeholder until you pick an image.';
+    }
+    if (ui.thumbFile) ui.thumbFile.value = '';
+    renderThumbGrid(video);
+  }
+
+  function renderThumbGrid(video) {
+    if (!ui.thumbGrid) return;
+    ui.thumbGrid.innerHTML = '';
+    const list = Array.isArray(thumbLibrary) ? thumbLibrary : [];
+    if (ui.thumbEmpty) ui.thumbEmpty.hidden = list.length > 0;
+    list.forEach((item) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'admin-thumb-choice' + (video && video.thumbnailFile === item.name ? ' is-selected' : '');
+      btn.title = 'Use ' + item.name + ' for this lesson';
+      btn.innerHTML = '<img alt="" /><span></span>';
+      btn.querySelector('img').src = item.url;
+      btn.querySelector('img').alt = item.name;
+      btn.querySelector('span').textContent = item.name;
+      btn.addEventListener('click', () => assignExistingThumb(item.name));
+      ui.thumbGrid.appendChild(btn);
+    });
+  }
+
+  function assignExistingThumb(filename) {
+    const video = currentVideo();
+    if (!video) return;
+    setThumbStatus('Saving thumbnail…', true);
+    fetchJson('/api/admin/thumbnail', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ video: video.id, thumbnail: filename })
+    }).then((body) => {
+      applyThumbResult(video, body);
+      setThumbStatus('Thumbnail saved for "' + video.name + '" ✓', true);
+    }).catch((err) => setThumbStatus(err.message, false));
+  }
+
+  function uploadThumbFile(file) {
+    const video = currentVideo();
+    if (!video || !file) return;
+    const name = String(file.name || '');
+    if (!/\.(jpe?g|png)$/i.test(name)) {
+      setThumbStatus('Please choose a JPG or PNG image.', false);
+      return;
+    }
+    setThumbStatus('Uploading…', true);
+    const url = '/api/admin/thumbnail/upload?video=' + encodeURIComponent(video.id) +
+      '&name=' + encodeURIComponent(file.name);
+    fetch(url, { method: 'POST', body: file })
+      .then((res) => res.json().then((body) => {
+        if (!res.ok) throw new Error((body && body.error) || 'HTTP ' + res.status);
+        return body;
+      }))
+      .then((body) => {
+        applyThumbResult(video, body);
+        setThumbStatus('Uploaded and saved for "' + video.name + '" ✓', true);
+        return fetchJson('/api/admin/thumbnails');
+      })
+      .then((lib) => {
+        if (lib && Array.isArray(lib.thumbnails)) {
+          thumbLibrary = lib.thumbnails;
+          renderThumbGrid(currentVideo());
+        }
+      })
+      .catch((err) => setThumbStatus(err.message, false));
   }
 
   function populatePicker() {
@@ -116,12 +222,13 @@
     videos.forEach((v) => {
       const opt = document.createElement('option');
       opt.value = v.id;
-      const hasMeta = metaMap[v.id] && (metaMap[v.id].description || metaMap[v.id].resourceUrl || (metaMap[v.id].snippets && metaMap[v.id].snippets.length));
-      opt.textContent = v.title + (hasMeta ? ' ✓' : '');
+      const hasMeta = metaMap[v.id] && (metaMap[v.id].description || metaMap[v.id].resourceUrl || metaMap[v.id].thumbnail || (metaMap[v.id].snippets && metaMap[v.id].snippets.length));
+      const isIntro = v.name.toLowerCase() === 'intro.mp4';
+      opt.textContent = (isIntro ? 'Course Introduction (landing page)' : v.title) + (hasMeta ? ' ✓' : '');
       picker.appendChild(opt);
     });
     if (videos.length) {
-      currentId = videos[0].id;
+      if (!currentId || !videos.some((v) => v.id === currentId)) currentId = videos[0].id;
       picker.value = currentId;
       fillForm(currentVideo());
       if (emptyEl) emptyEl.hidden = true;
@@ -174,17 +281,17 @@
         title: payload.title,
         description: payload.description,
         resourceUrl: payload.resourceUrl,
-        snippets: payload.snippets
+        snippets: payload.snippets,
+        thumbnail: (metaMap[video.id] && metaMap[video.id].thumbnail) || video.thumbnailFile || ''
       };
       if (payload.title) video.title = payload.title;
       setDirty(false);
+      if (ui.heading) ui.heading.textContent = payload.title || video.title;
+      populatePicker();
       if (ui.status) {
         ui.status.textContent = 'Saved for "' + video.name + '" only ✓';
         ui.status.className = 'admin-status admin-status--ok';
       }
-      if (ui.heading) ui.heading.textContent = payload.title || video.title;
-      populatePicker();
-      picker.value = video.id;
     }).catch((err) => {
       if (ui.status) {
         ui.status.textContent = err.message;
@@ -206,11 +313,13 @@
 
   function loadContent() {
     Promise.all([
-      fetchJson('/api/videos'),
-      fetchJson('/api/meta')
-    ]).then(([videoPayload, metaPayload]) => {
+      fetchJson('/api/videos?includeIntro=1'),
+      fetchJson('/api/meta'),
+      fetchJson('/api/admin/thumbnails').catch(() => ({ thumbnails: [] }))
+    ]).then(([videoPayload, metaPayload, thumbPayload]) => {
       videos = Array.isArray(videoPayload.videos) ? videoPayload.videos : [];
       metaMap = (metaPayload && metaPayload.meta) || {};
+      thumbLibrary = (thumbPayload && thumbPayload.thumbnails) || [];
       populatePicker();
     }).catch((err) => {
       if (emptyEl) {
@@ -374,6 +483,12 @@
     if (!el) return;
     el.addEventListener('input', () => setDirty(true));
   });
+  if (ui.thumbFile) {
+    ui.thumbFile.addEventListener('change', () => {
+      const file = ui.thumbFile.files && ui.thumbFile.files[0];
+      if (file) uploadThumbFile(file);
+    });
+  }
 
   if (loginForm) {
     const passInput = loginForm.querySelector('input[type="password"]');

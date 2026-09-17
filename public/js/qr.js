@@ -113,7 +113,19 @@
     } catch (e) { /* not signed in yet */ }
   }
 
+  function loadIntroCover() {
+    const video = document.getElementById('introVideo');
+    if (!video) return;
+    fetch('/api/intro', { credentials: 'include', headers: apiHeaders() })
+      .then((res) => res.json())
+      .then((body) => {
+        if (body && body.thumbnail) video.setAttribute('poster', body.thumbnail);
+      })
+      .catch(() => {});
+  }
+
   $('#btnShowQr').addEventListener('click', showQr);
   $('#btnRefreshQr').addEventListener('click', showQr);
+  loadIntroCover();
   checkAlreadySignedIn();
 })();

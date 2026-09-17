@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Westmont Video Portal — Sign in</title>
-  <link rel="icon" href="/logo/westmont-hub.svg" type="image/svg+xml" />
+  <title>E-Learning Streaming Solution — Sign in</title>
+  <link rel="icon" href="/api/logo/file" />
   <link rel="stylesheet" href="/css/styles.css" />
   <script>
     /* Apply the saved theme before first paint (Phase 1 behavior). */
@@ -27,8 +27,8 @@
 
   <header class="topbar">
     <a class="brand" href="/">
-      <img src="/logo/westmont-hub.svg" alt="Westmont Hub logo" width="36" height="36" />
-      <span>Westmont&nbsp;Hub</span>
+      <img class="brand-logo" src="/api/logo/file" alt="Site logo" width="80" height="45" />
+      <span>E-Learning Streaming Solution</span>
     </a>
     <div class="topbar-right">
     <button id="themeToggle" class="icon-btn" type="button" aria-label="Toggle light / dark mode" title="Toggle light / dark mode">
@@ -51,7 +51,7 @@
 
       <section class="intro-video-wrap" aria-label="Course introduction video">
         <h2 class="intro-video-label">Course introduction</h2>
-        <video class="intro-video" controls playsinline preload="metadata" poster="">
+        <video id="introVideo" class="intro-video" controls playsinline preload="metadata" poster="/thumbnails/intro.svg">
           <source src="/videos/intro.mp4" type="video/mp4" />
           Your browser does not support HTML5 video.
         </video>

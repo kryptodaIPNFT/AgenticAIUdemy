@@ -310,7 +310,7 @@
 
 
 
-      document.title = video.title + ' — Westmont Hub';
+      document.title = video.title + ' — E-Learning Streaming Solution';
 
       if (ui.title) ui.title.textContent = video.title;
 

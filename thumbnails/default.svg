@@ -8,6 +8,6 @@
   </defs>
   <rect width="640" height="360" fill="url(#bg)"/>
   <rect x="36" y="36" width="568" height="288" rx="18" fill="none" stroke="#e1ad62" stroke-width="3"/>
-  <text x="320" y="190" text-anchor="middle" fill="#ffffff" font-family="system-ui,sans-serif" font-size="32" font-weight="800">Westmont Hub</text>
+  <text x="320" y="190" text-anchor="middle" fill="#ffffff" font-family="system-ui,sans-serif" font-size="22" font-weight="800">E-Learning Streaming Solution</text>
   <text x="320" y="228" text-anchor="middle" fill="#e78943" font-family="system-ui,sans-serif" font-size="16" font-weight="700">Lesson thumbnail</text>
 </svg>

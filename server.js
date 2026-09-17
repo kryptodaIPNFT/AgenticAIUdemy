@@ -65,6 +65,13 @@ function publicOrigin(req) {
   return `${proto}://${req.get('host')}`;
 }
 
+app.use((req, res, next) => {
+  const pathOnly = String(req.path || req.url || '').split('?')[0];
+  if (req.method === 'POST' && pathOnly === '/api/admin/thumbnail/upload') {
+    return express.raw({ type: () => true, limit: '6mb' })(req, res, next);
+  }
+  next();
+});
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieSession({
   name: 'wvp.sid',
@@ -126,8 +133,63 @@ function requireAdmin(req, res) {
 
 const VIDEO_EXT = new Set(['.mp4', '.webm', '.ogg', '.ogv', '.mov', '.m4v', '.mkv', '.avi']);
 const THUMB_EXT = ['.webp', '.jpg', '.jpeg', '.png', '.svg'];
+const THUMB_LIBRARY_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+const THUMB_UPLOAD_EXT = new Set(['.jpg', '.jpeg', '.png']);
 const INTRO_FILE = 'intro.mp4';
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
+const THUMB_UPLOAD_MAX = 5 * 1024 * 1024;
+
+function isIntroFile(name) {
+  return String(name || '').toLowerCase() === INTRO_FILE.toLowerCase();
+}
+
+const LOGO_RASTER_EXT = ['.webp', '.png', '.jpg', '.jpeg'];
+const LOGO_FALLBACK = 'westmont-hub.svg';
+const LOGO_MIME = {
+  '.webp': 'image/webp',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.svg': 'image/svg+xml'
+};
+
+function findCustomLogo() {
+  const fallback = LOGO_FALLBACK;
+  if (!fs.existsSync(LOGO_DIR)) return fallback;
+  let files = [];
+  try {
+    files = fs.readdirSync(LOGO_DIR).filter((f) => {
+      if (f.startsWith('.')) return false;
+      return LOGO_RASTER_EXT.includes(path.extname(f).toLowerCase());
+    });
+  } catch (e) {
+    return fallback;
+  }
+  if (!files.length) return fallback;
+  const lower = files.map((f) => f.toLowerCase());
+  const preferred = ['logo.webp', 'logo.png', 'logo.jpg', 'logo.jpeg'];
+  for (let i = 0; i < preferred.length; i++) {
+    const idx = lower.indexOf(preferred[i]);
+    if (idx !== -1) return files[idx];
+  }
+  files.sort((a, b) => {
+    let ma = 0;
+    let mb = 0;
+    try { ma = fs.statSync(path.join(LOGO_DIR, a)).mtimeMs; } catch (e) { /* ignore */ }
+    try { mb = fs.statSync(path.join(LOGO_DIR, b)).mtimeMs; } catch (e) { /* ignore */ }
+    return mb - ma;
+  });
+  return files[0];
+}
+
+function logoFileUrl(file) {
+  const name = path.basename(file || LOGO_FALLBACK);
+  let v = '';
+  try {
+    v = '?v=' + Math.floor(fs.statSync(path.join(LOGO_DIR, name)).mtimeMs);
+  } catch (e) { /* ignore */ }
+  return `/logo/${encodeURIComponent(name)}${v}`;
+}
 
 function placeholderThumbSvg(title) {
   const label = String(title || 'Lesson').slice(0, 48);
@@ -151,7 +213,7 @@ function placeholderThumbSvg(title) {
   <circle cx="320" cy="155" r="42" fill="rgba(255,255,255,0.14)" stroke="#e1ad62" stroke-width="2"/>
   <polygon points="305,130 305,180 345,155" fill="#ffffff"/>
   <text x="320" y="248" text-anchor="middle" fill="#ffffff" font-family="system-ui,sans-serif" font-size="28" font-weight="800">${label.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</text>
-  <text x="320" y="278" text-anchor="middle" fill="#e1ad62" font-family="system-ui,sans-serif" font-size="14" font-weight="700" letter-spacing="3">WESTMONT HUB</text>
+  <text x="320" y="278" text-anchor="middle" fill="#e1ad62" font-family="system-ui,sans-serif" font-size="12" font-weight="700" letter-spacing="1.2">E-LEARNING STREAMING SOLUTION</text>
 </svg>`;
 }
 
@@ -163,20 +225,84 @@ function findThumbnailFile(basename) {
   return null;
 }
 
-function ensureThumbnail(videoName, title) {
+function safeThumbName(name) {
+  const file = path.basename(String(name || ''));
+  if (!file || file === '.' || file === '..') return '';
+  return file;
+}
+
+function thumbnailExists(file) {
+  if (!file) return false;
+  try {
+    return fs.existsSync(path.join(THUMBNAILS_DIR, file));
+  } catch (e) {
+    return false;
+  }
+}
+
+function resolveThumbnailFile(videoName, entry) {
+  const assigned = safeThumbName(entry && entry.thumbnail);
+  if (assigned && (ON_NETLIFY || thumbnailExists(assigned))) return assigned;
+  const base = path.basename(videoName, path.extname(videoName));
+  return findThumbnailFile(base) || (base + '.svg');
+}
+
+function thumbnailCacheQuery(file) {
+  if (ON_NETLIFY || !file) return '';
+  try {
+    return '?v=' + Math.floor(fs.statSync(path.join(THUMBNAILS_DIR, file)).mtimeMs);
+  } catch (e) {
+    return '';
+  }
+}
+
+function ensureThumbnail(videoName, title, entry) {
   if (ON_NETLIFY) return;
   fs.mkdirSync(THUMBNAILS_DIR, { recursive: true });
+  if (safeThumbName(entry && entry.thumbnail) && thumbnailExists(safeThumbName(entry.thumbnail))) return;
   const base = path.basename(videoName, path.extname(videoName));
   if (findThumbnailFile(base)) return;
   const svgPath = path.join(THUMBNAILS_DIR, base + '.svg');
   fs.writeFileSync(svgPath, placeholderThumbSvg(title || humanTitle(videoName)), 'utf8');
 }
 
-function thumbnailUrl(videoName) {
-  const base = path.basename(videoName, path.extname(videoName));
-  const file = findThumbnailFile(base);
-  if (file) return `/thumbnails/${encodeURIComponent(file)}`;
-  return `/thumbnails/${encodeURIComponent(base + '.svg')}`;
+function thumbnailUrl(videoName, entry) {
+  const file = resolveThumbnailFile(videoName, entry);
+  return `/thumbnails/${encodeURIComponent(file)}${thumbnailCacheQuery(file)}`;
+}
+
+function listLibraryThumbnails() {
+  if (!fs.existsSync(THUMBNAILS_DIR)) return [];
+  return fs.readdirSync(THUMBNAILS_DIR)
+    .filter((f) => THUMB_LIBRARY_EXT.has(path.extname(f).toLowerCase()))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+    .map((name) => ({
+      name,
+      url: `/thumbnails/${encodeURIComponent(name)}${thumbnailCacheQuery(name)}`
+    }));
+}
+
+function looksLikeJpeg(buf) {
+  return Buffer.isBuffer(buf) && buf.length > 2 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+}
+
+function looksLikePng(buf) {
+  return Buffer.isBuffer(buf) && buf.length > 7 &&
+    buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47 &&
+    buf[4] === 0x0d && buf[5] === 0x0a && buf[6] === 0x1a && buf[7] === 0x0a;
+}
+
+async function findLessonVideo(videoId) {
+  const videos = await listVideos({ includeIntro: true });
+  return videos.find((v) => v.id === videoId || v.name === videoId) || null;
+}
+
+async function saveAssignedThumbnail(videoId, thumbnailName) {
+  const m = await store.getMeta();
+  const prev = m[videoId] && typeof m[videoId] === 'object' ? m[videoId] : {};
+  m[videoId] = Object.assign({}, prev, { thumbnail: thumbnailName });
+  await store.saveMeta(m);
+  return m[videoId];
 }
 
 function humanTitle(filename) {
@@ -214,20 +340,27 @@ async function listVideos(opts) {
   }
 
   return files
-    .filter((f) => includeIntro || f.name.toLowerCase() !== INTRO_FILE.toLowerCase())
-    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+    .filter((f) => includeIntro || !isIntroFile(f.name))
+    .sort((a, b) => {
+      const aIntro = isIntroFile(a.name);
+      const bIntro = isIntroFile(b.name);
+      if (aIntro !== bIntro) return aIntro ? -1 : 1;
+      return a.name.localeCompare(b.name, undefined, { numeric: true });
+    })
     .map((file, index) => {
       const name = file.name;
       const entry = m[name] || {};
       const title = entry.title || humanTitle(name);
-      ensureThumbnail(name, title);
+      ensureThumbnail(name, title, entry);
+      const thumbFile = resolveThumbnailFile(name, entry);
       return {
         id: name,
         name,
         title,
         description: entry.description || '',
         url: `/videos/${encodeURIComponent(name)}`,
-        thumbnail: thumbnailUrl(name),
+        thumbnail: thumbnailUrl(name, entry),
+        thumbnailFile: thumbFile,
         size: file.size,
         mtime: file.mtimeMs,
         duration: Number(entry.duration) || 0,
@@ -473,8 +606,49 @@ app.post('/api/progress/complete', async (req, res) => {
    Phase 5 — video library (reads /videos on every request)
    ============================================================ */
 app.get('/api/videos', async (req, res) => {
-  const videos = await listVideos();
+  const includeIntro = req.query.includeIntro === '1' || req.query.intro === '1';
+  const videos = await listVideos({ includeIntro });
   res.json({ videos, count: videos.length });
+});
+
+app.get('/api/intro', async (req, res) => {
+  const videos = await listVideos({ includeIntro: true });
+  const intro = videos.find((v) => isIntroFile(v.name));
+  if (!intro) {
+    return res.json({
+      ok: false,
+      thumbnail: '/thumbnails/intro.svg',
+      thumbnailFile: 'intro.svg'
+    });
+  }
+  res.json({
+    ok: true,
+    name: intro.name,
+    title: intro.title,
+    thumbnail: intro.thumbnail,
+    thumbnailFile: intro.thumbnailFile
+  });
+});
+
+app.get('/api/logo', (req, res) => {
+  const file = findCustomLogo();
+  res.json({
+    ok: true,
+    file,
+    url: logoFileUrl(file),
+    mime: LOGO_MIME[path.extname(file).toLowerCase()] || 'image/png'
+  });
+});
+
+app.get('/api/logo/file', (req, res) => {
+  const file = findCustomLogo();
+  const full = path.join(LOGO_DIR, file);
+  if (!fs.existsSync(full)) {
+    return res.status(404).type('text').send('Logo not found');
+  }
+  res.setHeader('Content-Type', LOGO_MIME[path.extname(file).toLowerCase()] || 'application/octet-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.sendFile(full);
 });
 
 /* ============================================================
@@ -486,12 +660,13 @@ app.post('/api/meta', async (req, res) => {
   if (!requireAdmin(req, res)) return;
   const { video, title, description, resourceUrl, snippets } = req.body || {};
   if (typeof video !== 'string' || !video) return res.status(400).json({ ok: false, error: 'video is required' });
-  const videos = await listVideos();
-  if (!videos.some((v) => v.id === video || v.name === video)) {
+  const lesson = await findLessonVideo(video);
+  if (!lesson) {
     return res.status(404).json({ ok: false, error: 'Lesson not found: ' + video });
   }
   const m = await store.getMeta();
-  m[video] = {
+  const prev = m[video] && typeof m[video] === 'object' ? m[video] : {};
+  m[video] = Object.assign({}, prev, {
     title: typeof title === 'string' ? title.slice(0, 200) : '',
     description: typeof description === 'string' ? description.slice(0, 4000) : '',
     resourceUrl: typeof resourceUrl === 'string' ? resourceUrl.slice(0, 2000) : '',
@@ -502,9 +677,87 @@ app.post('/api/meta', async (req, res) => {
           code: String(s.code).slice(0, 50000)
         }))
       : []
-  };
+  });
   await store.saveMeta(m);
   res.json({ ok: true, video, meta: m[video] });
+});
+
+app.get('/api/admin/thumbnails', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  res.json({ ok: true, thumbnails: listLibraryThumbnails() });
+});
+
+app.post('/api/admin/thumbnail', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const video = typeof req.body?.video === 'string' ? req.body.video : '';
+  const thumbnail = safeThumbName(req.body && req.body.thumbnail);
+  if (!video) return res.status(400).json({ ok: false, error: 'video is required' });
+  if (!thumbnail) return res.status(400).json({ ok: false, error: 'thumbnail is required' });
+  if (!THUMB_LIBRARY_EXT.has(path.extname(thumbnail).toLowerCase())) {
+    return res.status(400).json({ ok: false, error: 'Choose a JPG, PNG, or WebP image.' });
+  }
+  const lesson = await findLessonVideo(video);
+  if (!lesson) return res.status(404).json({ ok: false, error: 'Lesson not found: ' + video });
+  if (!ON_NETLIFY && !thumbnailExists(thumbnail)) {
+    return res.status(404).json({ ok: false, error: 'Thumbnail file not found: ' + thumbnail });
+  }
+  const meta = await saveAssignedThumbnail(video, thumbnail);
+  res.json({
+    ok: true,
+    video,
+    thumbnail,
+    thumbnailUrl: thumbnailUrl(video, meta),
+    thumbnailFile: thumbnail
+  });
+});
+
+app.post('/api/admin/thumbnail/upload', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  if (ON_NETLIFY) {
+    return res.status(400).json({
+      ok: false,
+      error: 'Uploading new images is not available on this host. Place JPG/PNG files in the thumbnails folder, then assign them here.'
+    });
+  }
+  const video = typeof req.query.video === 'string' ? req.query.video : '';
+  const original = safeThumbName(req.query.name);
+  const ext = path.extname(original).toLowerCase();
+  if (!video) return res.status(400).json({ ok: false, error: 'video is required' });
+  if (!THUMB_UPLOAD_EXT.has(ext)) {
+    return res.status(400).json({ ok: false, error: 'Upload a JPG or PNG image.' });
+  }
+  const lesson = await findLessonVideo(video);
+  if (!lesson) return res.status(404).json({ ok: false, error: 'Lesson not found: ' + video });
+  const buf = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+  if (!buf.length) return res.status(400).json({ ok: false, error: 'No image data received.' });
+  if (buf.length > THUMB_UPLOAD_MAX) {
+    return res.status(413).json({ ok: false, error: 'Image is too large (max 5 MB).' });
+  }
+  if (ext === '.png' && !looksLikePng(buf)) {
+    return res.status(400).json({ ok: false, error: 'That file is not a valid PNG image.' });
+  }
+  if ((ext === '.jpg' || ext === '.jpeg') && !looksLikeJpeg(buf)) {
+    return res.status(400).json({ ok: false, error: 'That file is not a valid JPG image.' });
+  }
+  fs.mkdirSync(THUMBNAILS_DIR, { recursive: true });
+  const destName = path.basename(video, path.extname(video)) + ext;
+  fs.writeFileSync(path.join(THUMBNAILS_DIR, destName), buf);
+  for (const other of THUMB_EXT) {
+    if (other === ext) continue;
+    const rival = path.basename(video, path.extname(video)) + other;
+    const rivalPath = path.join(THUMBNAILS_DIR, rival);
+    if (fs.existsSync(rivalPath)) {
+      try { fs.unlinkSync(rivalPath); } catch (e) { /* ignore */ }
+    }
+  }
+  const meta = await saveAssignedThumbnail(video, destName);
+  res.json({
+    ok: true,
+    video,
+    thumbnail: destName,
+    thumbnailUrl: thumbnailUrl(video, meta),
+    thumbnailFile: destName
+  });
 });
 
 /* ---------------- admin auth ---------------- */

@@ -581,27 +581,40 @@ html[data-theme="dark"] .topbar {
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.75rem;
   text-decoration: none;
   color: var(--ink);
   font-weight: 800;
   letter-spacing: -0.01em;
   font-size: 1.05rem;
   line-height: 1;
-  min-height: 42px;
+  min-height: 45px;
   flex-shrink: 0;
 }
 
 .brand span {
   white-space: nowrap;
+  line-height: 1.2;
 }
 
-.brand img {
-  width: 36px;
-  height: 36px;
+@media (max-width: 720px) {
+  .brand span {
+    white-space: normal;
+    max-width: 10.5rem;
+    font-size: 0.82rem;
+  }
+}
+
+.brand img,
+.brand-logo {
+  width: 80px;
+  height: 45px;
+  aspect-ratio: 16 / 9;
   object-fit: contain;
+  object-position: left center;
   flex: none;
   display: block;
+  border-radius: 6px;
 }
 
 .icon-btn {
@@ -748,25 +761,28 @@ html[data-theme="dark"] .btn-ghost {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 1320px;
+  max-width: 1480px;
   margin: 0 auto;
   padding: 2rem;
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(461px, 605px);
+  grid-template-columns: minmax(0, 1.5fr) minmax(480px, 560px);
   gap: 2.5rem;
-  align-items: start;
+  align-items: stretch;
 }
 
 .landing-main {
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
+  min-width: 0;
 }
 
 .landing-auth {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  min-width: 0;
+  min-height: 100%;
+  height: 100%;
 }
 
 .intro-video-wrap {
@@ -790,6 +806,7 @@ html[data-theme="dark"] .intro-video-label {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
+  object-fit: cover;
   border-radius: var(--radius-md);
   background: #000;
   border: 1px solid var(--card-border);
@@ -801,22 +818,35 @@ html[data-theme="dark"] .intro-video-label {
     grid-template-columns: 1fr;
     gap: 2rem;
     padding: 1.5rem;
+    align-items: start;
+  }
+
+  .landing-auth,
+  .qr-panel {
+    min-height: 0;
+    height: auto;
+  }
+
+  .intro h1 {
+    white-space: normal;
+    font-size: clamp(1.55rem, 5vw, 2.2rem);
   }
 }
 
 /* --- intro typography: readable column, line-height 1.6 --- */
 
 .intro {
-  max-width: 640px;
+  max-width: none;
 }
 
 .intro h1 {
   margin: 0 0 1rem;
-  font-size: clamp(1.9rem, 4.5vw, 2.7rem);
+  font-size: clamp(1.35rem, 2.05vw, 2.15rem);
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.2;
   color: var(--ink);
+  white-space: nowrap;
 }
 
 .intro .accent {
@@ -840,7 +870,13 @@ html[data-theme="dark"] .intro .accent {
 .qr-panel {
   position: relative;
   width: 100%;
-  padding: 2.25rem 2rem;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100%;
+  padding: 2.6rem 2.35rem;
+  box-sizing: border-box;
   text-align: center;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
@@ -852,6 +888,15 @@ html[data-theme="dark"] .intro .accent {
     background-color var(--transition-theme),
     border-color var(--transition-theme),
     box-shadow var(--transition-theme);
+}
+
+.qr-idle:not([hidden]),
+.qr-live:not([hidden]),
+.qr-ok:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1 1 auto;
 }
 
 /* thin gold highlight across the top of the card */
@@ -941,8 +986,8 @@ html[data-theme="dark"] .qr-steps li b {
 /* --- live QR state --- */
 
 .qr-live .qr-frame {
-  width: 220px;
-  height: 220px;
+  width: 280px;
+  height: 280px;
   margin: 0 auto 1rem;
   border-radius: 14px;
   background: #fff;
@@ -2225,6 +2270,93 @@ html[data-theme="light"] .snippet-code {
 
 @media (max-width: 640px) {
   .admin-snippet-grid { grid-template-columns: 1fr; }
+}
+
+.admin-thumb-section {
+  margin: 0.35rem 0 1.1rem;
+  padding: 0.85rem 0 0.25rem;
+  border-top: 1px dashed var(--border);
+}
+
+.admin-thumb-preview-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.9rem;
+}
+
+.admin-thumb-preview {
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #002147;
+}
+
+.admin-thumb-name {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-family: ui-monospace, monospace;
+}
+
+.admin-thumb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.65rem;
+  margin: 0 0 1rem;
+}
+
+.admin-thumb-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.35rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.admin-thumb-choice img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #002147;
+  display: block;
+}
+
+.admin-thumb-choice span {
+  font-size: 0.72rem;
+  line-height: 1.3;
+  word-break: break-all;
+  color: var(--muted);
+}
+
+.admin-thumb-choice:hover {
+  border-color: var(--brand-gold, #e1ad62);
+  transform: translateY(-1px);
+}
+
+.admin-thumb-choice.is-selected {
+  border-color: var(--brand-gold, #e78943);
+  box-shadow: 0 0 0 2px rgba(231, 137, 67, 0.45);
+}
+
+.admin-thumb-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-thumb-upload .field {
+  margin-bottom: 0;
 }
 
 /* --- watch page snippet panel --- */

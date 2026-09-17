@@ -1,26 +1,20 @@
-# Westmont Hub — logo
+Westmont Hub — logo
+===================
 
-The portal header uses **`/logo/westmont-hub.svg`**.
+Drop a PNG, JPG, or WebP into this folder. The site picks it up
+automatically and shows it 16:9 in the top-left header on every page.
 
-## Current setup
+Supported files
+---------------
+  logo.png / logo.jpg / logo.webp   (preferred names)
+  any other .png .jpg .jpeg .webp
 
-- File: `logo/westmont-hub.svg`
-- Brand colors: blue `#0068b3`, gold `#e1ad62`
-- Served at: http://localhost:3000/logo/westmont-hub.svg
+If several images are present, `logo.png` (or .jpg / .webp) wins.
+Otherwise the newest file is used.
 
-## Replace with your own logo
+Fallback (no raster image yet)
+------------------------------
+  westmont-hub.svg
 
-1. Add your file to the `logo/` folder, e.g.:
-   - `logo/westmont-hub.svg` (recommended — sharp at any size)
-   - `logo/westmont-hub.png` or `.webp`
-
-2. Update the `<img>` and favicon paths in:
-   - `public/index.html`
-   - `public/dashboard.html`
-   - `public/watch.html`
-   - `public/admin.html`
-   - `public/qr-reader.html`
-
-3. Hard-refresh the browser (Ctrl+F5).
-
-If you have an official **Westmont Hub** asset, drop it in `logo/` using the same filename to replace the placeholder automatically.
+No HTML edits needed. After you add or replace a file, refresh the
+browser (Ctrl+F5).

@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Admin — Westmont Video Portal</title>
-  <link rel="icon" href="/logo/westmont-hub.svg" type="image/svg+xml" />
+  <title>Admin — E-Learning Streaming Solution</title>
+  <link rel="icon" href="/api/logo/file" />
   <link rel="stylesheet" href="/css/styles.css" />
   <script>
     (function () {
@@ -23,7 +23,7 @@
 
   <header class="topbar">
     <a class="brand" href="/">
-      <img src="/logo/westmont-hub.svg" alt="Westmont Hub logo" width="36" height="36" />
+      <img class="brand-logo" src="/api/logo/file" alt="Site logo" width="80" height="45" />
       <span>Admin</span>
     </a>
     <div class="topbar-right">
@@ -98,7 +98,7 @@
       <div id="tabLessons" class="admin-tab-panel" hidden>
         <div class="admin-head">
           <h1>Lesson content editor</h1>
-          <p class="reader-sub">Pick <strong>one lesson</strong> below — description, resources and snippets are saved separately for each video file.</p>
+          <p class="reader-sub">Pick <strong>one lesson</strong> below — including the landing-page intro video. Description, resources, snippets, and thumbnail are saved separately for each file.</p>
         </div>
 
         <div class="admin-picker glass-panel">
@@ -115,6 +115,23 @@
 
           <label class="field-label" for="lessonTitle">Display title (optional)</label>
           <input id="lessonTitle" class="field" type="text" placeholder="Leave blank to use auto title from filename" autocomplete="off" />
+
+          <div class="admin-thumb-section">
+            <h3 class="admin-snippet-heading">Lesson thumbnail</h3>
+            <p class="admin-snippet-help">Click a JPG/PNG already in the <code>thumbnails/</code> folder, or upload one from your computer. For the intro video, this cover shows on the landing page.</p>
+            <div class="admin-thumb-preview-wrap">
+              <img id="lessonThumbPreview" class="admin-thumb-preview" alt="Current lesson thumbnail" />
+              <p id="lessonThumbName" class="admin-thumb-name"></p>
+            </div>
+            <p class="field-label">Choose from existing images</p>
+            <div id="lessonThumbGrid" class="admin-thumb-grid"></div>
+            <p id="lessonThumbEmpty" class="admin-snippet-help" hidden>No JPG/PNG files found in <code>thumbnails/</code> yet.</p>
+            <label class="field-label" for="lessonThumbFile">Or upload a JPG / PNG</label>
+            <div class="admin-thumb-upload">
+              <input id="lessonThumbFile" class="field" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" />
+              <span id="lessonThumbStatus" class="admin-status" aria-live="polite"></span>
+            </div>
+          </div>
 
           <label class="field-label" for="lessonDescription">Description</label>
           <textarea id="lessonDescription" class="field" rows="5" placeholder="What this lesson covers…" autocomplete="off"></textarea>

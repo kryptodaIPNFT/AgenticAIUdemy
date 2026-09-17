@@ -50,4 +50,23 @@
   }
 })();
 
+(function applyCustomLogo() {
+  'use strict';
+  function setLogo(url, mime) {
+    document.querySelectorAll('.brand img, .brand-logo').forEach((img) => {
+      img.src = url;
+    });
+    document.querySelectorAll('link[rel="icon"]').forEach((link) => {
+      link.href = url;
+      if (mime) link.type = mime;
+    });
+  }
+  fetch('/api/logo', { credentials: 'include' })
+    .then((res) => res.json())
+    .then((body) => {
+      if (body && body.url) setLogo(body.url, body.mime);
+    })
+    .catch(() => {});
+})();
+
 console.log('naeed — Phase 1 (theme toggle) loaded.');
